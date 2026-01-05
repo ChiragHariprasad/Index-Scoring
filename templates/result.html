@@ -608,8 +608,8 @@
                     <div
                       class="flex justify-between text-xs text-gray-500 font-semibold px-2"
                     >
-                      <span>🟢 Safe</span>
                       <span>🔴 High Risk</span>
+                      <span>🟢 Safe</span>
                     </div>
                   </div>
                 </div>
@@ -836,42 +836,23 @@
                           ></div>
                         </div>
                       </div>
-                      <!-- Real-time Analytics Summary -->
-                      <div
-                        class="mt-4 p-3 rounded-lg bg-white/50 border border-[#eef0f6]"
-                      >
-                        <h4 class="font-semibold text-sm text-[#0e111b]">
-                          Real-time Analytics Summary
-                        </h4>
-                        <p
-                          id="analyticsSummary"
-                          class="text-xs text-gray-600 mt-2"
-                        >
-                          Waiting for analysis...
-                        </p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                          <div class="p-2 rounded-md bg-gray-50">
-                            <div class="text-xs text-gray-500">
-                              Exterior Insight
-                            </div>
-                            <div
-                              id="exteriorInsight"
-                              class="text-sm font-medium text-[#0e111b]"
-                            >
-                              --
-                            </div>
-                          </div>
-                          <div class="p-2 rounded-md bg-gray-50">
-                            <div class="text-xs text-gray-500">
-                              Interior Insight
-                            </div>
-                            <div
-                              id="interiorInsight"
-                              class="text-sm font-medium text-[#0e111b]"
-                            >
-                              --
-                            </div>
-                          </div>
+                    </div>
+                    <!-- Real-time Analytics Summary (moved out of chart row for proper alignment) -->
+                    <div class="mt-2 p-4 rounded-lg bg-white/60 border border-[#eef0f6] shadow-sm">
+                      <h4 class="font-semibold text-sm text-[#0e111b] mb-2">
+                        Real-time Analytics Summary
+                      </h4>
+                      <p id="analyticsSummary" class="text-xs text-gray-600 mt-0">
+                        Waiting for analysis...
+                      </p>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                        <div class="p-2 rounded-md bg-gray-50">
+                          <div class="text-xs text-gray-500">Exterior Insight</div>
+                          <div id="exteriorInsight" class="text-sm font-medium text-[#0e111b]">--</div>
+                        </div>
+                        <div class="p-2 rounded-md bg-gray-50">
+                          <div class="text-xs text-gray-500">Interior Insight</div>
+                          <div id="interiorInsight" class="text-sm font-medium text-[#0e111b]">--</div>
                         </div>
                       </div>
                     </div>
