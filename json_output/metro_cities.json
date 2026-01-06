@@ -1,0 +1,144 @@
+{
+  "CONSTRUCTION_TYPE": {
+    "PUCCA": { "METRO_CITIES": "", "Score": 15, "Max": 15, "Min": 1 },
+    "SEMI_PUCCA": { "METRO_CITIES": "", "Score": 7, "Max": "", "Min": "" },
+    "Kitcha": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "CONDITION_AND_MAINTENANCE": {
+    "NEWLY_CONSTRUCTED": { "METRO_CITIES": "", "Score": 15, "Max": 15, "Min": 1 },
+    "WELL_MAINTAINED": { "METRO_CITIES": "", "Score": 15, "Max": "", "Min": "" },
+    "FAIR_MAINTAINED": { "METRO_CITIES": "", "Score": 7, "Max": "", "Min": "" },
+    "SHOWS_MINOR_WEAR": { "METRO_CITIES": "", "Score": 6, "Max": "", "Min": "" },
+    "RUSTIC_AGED": { "METRO_CITIES": "", "Score": 4, "Max": "", "Min": "" },
+    "POORLY_MAINTAINED_NEEDS_REPAIR": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "DILAPIDATED": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "ROOF_INFORMATION_TYPE_AND_MATERIAL": {
+    "FLAT_CONCRETE": { "METRO_CITIES": "", "Score": 10, "Max": 10, "Min": 1 },
+    "METAL_SHEET_MODERN": { "METRO_CITIES": "", "Score": 8, "Max": "", "Min": "" },
+    "TILED_SLOPED": { "METRO_CITIES": "", "Score": 8, "Max": "", "Min": "" },
+    "ASBESTOS_SHEET": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "METAL_SHEET_CORRUGATED": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "THATCH_NATURAL": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "PLASTIC_SHEET": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "WALL_CHARACTERISTICS_PRIMARY_MATERIAL_APPARENT": {
+    "BRICK": { "METRO_CITIES": "", "Score": 9, "Max": 9, "Min": 1 },
+    "CONCRETE_BLOCK_CEMENT": { "METRO_CITIES": "", "Score": 9, "Max": "", "Min": "" },
+    "STONE": { "METRO_CITIES": "", "Score": 5, "Max": "", "Min": "" },
+    "WOOD": { "METRO_CITIES": "", "Score": 4, "Max": "", "Min": "" },
+    "MUD_ADOBE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "BAMBOO": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "WALL_CHARACTERISTICS_EXTERIOR_FINISH": {
+    "PAINTED_PLASTER": { "METRO_CITIES": "", "Score": 10, "Max": 10, "Min": 1 },
+    "MODERN_CLADDING": { "METRO_CITIES": "", "Score": 10, "Max": "", "Min": "" },
+    "TILED_EXTERIOR": { "METRO_CITIES": "", "Score": 10, "Max": "", "Min": "" },
+    "WHITEWASH": { "METRO_CITIES": "", "Score": 5, "Max": "", "Min": "" },
+    "EXPOSED_BRICK": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "EXPOSED_STONE": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "EXPOSED_MUD_FINISH": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "OTHER": { "METRO_CITIES": "", "Score": 5, "Max": "", "Min": "" },
+    "UNPAINTED_PLASTER": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" }
+  },
+
+  "IMMEDIATE_SURROUNDINGS": {
+    "PAVED_AREA": { "METRO_CITIES": "", "Score": 8, "Max": 8, "Min": 1 },
+    "SMALL_GARDEN_VEGETATION": { "METRO_CITIES": "", "Score": 8, "Max": "", "Min": "" },
+    "LIVESTOCK_SHED_ATTACHED": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "OPEN_DRAINAGE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "CLUTTERED_STORAGE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "EVIDENCE_OF_ELECTRICITY_PRESENCE": {
+    "SOLAR_PANELS_ON_PROPERTY": { "METRO_CITIES": "", "Score": 10, "Max": 10, "Min": 2 },
+    "INTERIOR_LIGHTS_VISIBLE_IF_NIGHT": { "METRO_CITIES": "", "Score": 5, "Max": "", "Min": "" },
+    "METER_BOX_VISIBLE": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "NOT_DETERMINABLE": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" }
+  },
+
+  "VEHICLE_ASSETS_TWO_WHEELER": {
+    "YES": { "METRO_CITIES": "", "Score": 5, "Max": 5, "Min": 2 },
+    "NO": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" }
+  },
+
+  "VEHICLE_ASSETS_FOUR_WHEELER": {
+    "YES": { "METRO_CITIES": "", "Score": 8, "Max": 8, "Min": 3 },
+    "NO": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" }
+  },
+
+  "VEHICLE_ASSETS_OTHERS": {
+    "TRACTOR": { "METRO_CITIES": "", "Score": 10, "Max": 10, "Min": 2 },
+    "TRUCK": { "METRO_CITIES": "", "Score": 10, "Max": "", "Min": "" },
+    "NONE_VISIBLE": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "NOT_DETERMINABLE": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" }
+  },
+
+  "Interior_Condition_Impression": {
+    "WELL_MAINTAINED_CLEAN": { "METRO_CITIES": "", "Score": 11, "Max": 11, "Min": 1 },
+    "FAIR_MAINTAINED_FUNCTIONAL": { "METRO_CITIES": "", "Score": 11, "Max": "", "Min": "" },
+    "POORLY_MAINTAINED_UNTIDY": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "CLUTTERED_OVERCROWDED": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "SIGNS_OF_DAMPNESS_OR_DAMAGE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "Wall_Finish_Visible": {
+    "PAINTED": { "METRO_CITIES": "", "Score": 6, "Max": 15, "Min": 1 },
+    "WHITEWASHED": { "METRO_CITIES": "", "Score": 4, "Max": "", "Min": "" },
+    "CEMENT_PLASTER_UNPAINTED_OR_BASIC": { "METRO_CITIES": "", "Score": 4, "Max": "", "Min": "" },
+    "EXPOSED_BRICK": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "TILES_VISIBLE": { "METRO_CITIES": "", "Score": 15, "Max": "", "Min": "" },
+    "DAMAGED_FINISH_PEELING_DAMP": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "Flooring_Material_Visible": {
+    "CEMENT_PLAIN_OR_RED_OXIDE": { "METRO_CITIES": "", "Score": 4, "Max": 12, "Min": 1 },
+    "BASIC_CERAMIC_TILES": { "METRO_CITIES": "", "Score": 12, "Max": "", "Min": "" },
+    "COMPACTED_EARTH_MUD_FLOOR": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "VINYL_SHEET_BASIC": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "VISIBLE_DAMAGE_OR_VERY_ROUGH": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" }
+  },
+
+  "Asset_Category_White_Goods": {
+    "REFRIGERATOR": { "METRO_CITIES": "", "Score": 3, "Max": 3, "Min": 1 },
+    "WASHING_MACHINE": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "AIR_COOLER": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "AIR_CONDITIONER": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "GAS_STOVE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "MIXER_GRINDER": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "WATER_PURIFIER": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" }
+  },
+
+  "Asset_Category_Brown_Goods": {
+    "TELEVISION": { "METRO_CITIES": "", "Score": 3, "Max": 3, "Min": 1 },
+    "RADIO_OR_MUSIC_PLAYER": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "SET_TOP_BOX_OR_DISH_ANTENNA_EQUIPMENT": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "BASIC_COMPUTER_SETUP": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" }
+  },
+
+  "Furniture_Type": {
+    "COT_OR_BED_SIMPLE_FRAME": { "METRO_CITIES": "", "Score": 5, "Max": 5, "Min": 1 },
+    "CHAIR_BASIC_WOOD_OR_METAL": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "TABLE_SMALL_PLASTIC_OR_WOOD": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "DINING_TABLE_BASIC_SMALL": { "METRO_CITIES": "", "Score": 2, "Max": "", "Min": "" },
+    "STOOL_OR_CHOWKI": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "ALMIRAH_OR_CUPBOARD_BASIC_METAL": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "ALMIRAH_OR_CUPBOARD_BASIC_WOOD": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" },
+    "SHELF_OR_RACK_BASIC": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "FLOOR_MAT_OR_DARI_FOR_SEATING": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "BASIC_SOFA_OR_DIWAN_SIMPLE": { "METRO_CITIES": "", "Score": 3, "Max": "", "Min": "" }
+  },
+
+  "Fixtures_And_Decor_Type": {
+    "FAN_VISIBLE": { "METRO_CITIES": "", "Score": 1, "Max": 1, "Min": 1 },
+    "LIGHT_FIXTURE_VISIBLE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "WINDOW_DRESSING_VISIBLE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "WALL_ITEM_VISIBLE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "BASIC_ROOM_UTILITY_VISIBLE": { "METRO_CITIES": "", "Score": 1, "Max": "", "Min": "" },
+    "DOOR_VISIBLE": { "METRO_CITIES": "", "Score": 1, "Max": 150, "Min": 22 }
+  }
+}
