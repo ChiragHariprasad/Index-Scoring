@@ -4,7 +4,10 @@ from fastapi import (
     File,
     Request,
     BackgroundTasks,
-    Form
+    Form,
+    Depends,
+    HTTPException,
+    status
 )
 from fastapi.responses import (
     RedirectResponse,
@@ -14,6 +17,7 @@ from fastapi.responses import (
 )
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 from typing import List
 import os
 import uuid
@@ -31,6 +35,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 # APP SETUP
 # -------------------------------------------------
 app = FastAPI()
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "super-secret-key-change-me"), max_age=None)
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
@@ -109,12 +114,52 @@ def process_images(session_id: str, session_path: str):
         }
 
 # -------------------------------------------------
+# AUTHENTICATION
+# -------------------------------------------------
+
+class NotAuthenticated(Exception):
+    pass
+
+@app.exception_handler(NotAuthenticated)
+async def not_authenticated_handler(request: Request, exc: NotAuthenticated):
+    return RedirectResponse(url="/login")
+
+def get_current_user(request: Request):
+    user = request.session.get("user")
+    if not user:
+        raise NotAuthenticated()
+    return user
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/login")
+def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    # Simple hardcoded credentials for demonstration
+    # In production, use a database and hash passwords
+    users = ["jeyasri", "jadagesh", "beno", "satish", "george", "dhanush", ]
+    if username in users and password == "password123":
+        request.session["user"] = username
+        return RedirectResponse(url="/", status_code=303)
+    
+    return templates.TemplateResponse(
+        "login.html", 
+        {"request": request, "error": "Invalid username or password"}
+    )
+
+@app.api_route("/logout", methods=["GET", "POST"])
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=303)
+
+# -------------------------------------------------
 # ROUTES
 # -------------------------------------------------
 
 # Landing / Upload page
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request):
+def index(request: Request, user: str = Depends(get_current_user)):
     return templates.TemplateResponse(
         "index.html",
         {"request": request}
@@ -128,7 +173,8 @@ async def upload_images(
     pincode: str = Form(default=""),
     postoffice: str = Form(default=""),
     district: str = Form(default=""),
-    state: str = Form(default="")
+    state: str = Form(default=""),
+    user: str = Depends(get_current_user)
 ):
     print("FILES RECEIVED:", len(files))
     session_id = str(uuid.uuid4())
@@ -168,7 +214,7 @@ async def upload_images(
 
 # Processing screen
 @app.get("/processing", response_class=HTMLResponse)
-def processing(request: Request, session_id: str):
+def processing(request: Request, session_id: str, user: str = Depends(get_current_user)):
     # Get location data if it exists
     location_data = {}
     if hasattr(upload_images, "_locations") and session_id in upload_images._locations:
@@ -188,14 +234,14 @@ def processing(request: Request, session_id: str):
 
 # Status polling endpoint
 @app.get("/status")
-def status(session_id: str):
+def status(session_id: str, user: str = Depends(get_current_user)):
     return JSONResponse({
         "status": PROCESS_STATUS.get(session_id, "UNKNOWN")
     })
 
 # Result dashboard
 @app.get("/result", response_class=HTMLResponse)
-def result(request: Request, session_id: str):
+def result(request: Request, session_id: str, user: str = Depends(get_current_user)):
     data = RESULT_STORE.get(session_id)
     
     # Get location data if it exists
@@ -245,7 +291,7 @@ def result(request: Request, session_id: str):
 
 # JSON API endpoint for real-time dashboard updates
 @app.get("/result-json")
-def result_json(session_id: str):
+def result_json(session_id: str, user: str = Depends(get_current_user)):
     """Return the current result data as JSON for client-side polling"""
     data = RESULT_STORE.get(session_id)
     
@@ -281,7 +327,7 @@ def result_json(session_id: str):
 
 # Debug helper: create a sample result and redirect to it (development only)
 @app.get("/debug/fill_result")
-def debug_fill_result():
+def debug_fill_result(user: str = Depends(get_current_user)):
     session_id = str(uuid.uuid4())
     PROCESS_STATUS[session_id] = "DONE"
     RESULT_STORE[session_id] = {
@@ -303,7 +349,7 @@ def debug_fill_result():
 # -------------------------------------------------
 
 @app.post("/export-pdf")
-async def export_pdf(request: Request):
+async def export_pdf(request: Request, user: str = Depends(get_current_user)):
     """Generate and export PDF report"""
     try:
         data = await request.json()
@@ -411,7 +457,7 @@ Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}
 
 
 @app.post("/export-csv")
-async def export_csv(request: Request):
+async def export_csv(request: Request, user: str = Depends(get_current_user)):
     """Generate and export CSV report"""
     try:
         data = await request.json()
@@ -449,7 +495,7 @@ async def export_csv(request: Request):
 
 
 @app.post("/generate-share-link")
-async def generate_share_link(request: Request):
+async def generate_share_link(request: Request, user: str = Depends(get_current_user)):
     """Generate a unique share link for the report"""
     try:
         data = await request.json()

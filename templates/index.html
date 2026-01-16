@@ -1,699 +1,604 @@
 <!DOCTYPE html>
 
 <html class="light" lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Lifestyle Lens - PropertyAI&amp; Lifestyle Assessment</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-      rel="stylesheet"
-    />
-    <link href="https://fonts.googleapis.com" rel="preconnect" />
-    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-      rel="stylesheet"
-    />
-    <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              primary: "#667fea",
-              "secondary-purple": "#764ba2",
-              "background-light": "#f6f6f8",
-              "background-dark": "#111421",
-            },
-            fontFamily: {
-              display: ["Inter", "sans-serif"],
-            },
-            borderRadius: {
-              DEFAULT: "1rem",
-              lg: "2rem",
-              xl: "3rem",
-              full: "9999px",
-            },
-            backgroundImage: {
-              "hero-gradient":
-                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              "button-gradient":
-                "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
-            },
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Lifestyle Lens - PropertyAI&amp; Lifestyle Assessment</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#667fea",
+            "secondary-purple": "#764ba2",
+            "background-light": "#f6f6f8",
+            "background-dark": "#111421",
+          },
+          fontFamily: {
+            display: ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "1rem",
+            lg: "2rem",
+            xl: "3rem",
+            full: "9999px",
+          },
+          backgroundImage: {
+            "hero-gradient":
+              "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            "button-gradient":
+              "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
           },
         },
-      };
-    </script>
-    <style>
-      body {
-        font-family: "Inter", sans-serif;
-      }
-      .upload-dashed {
-        background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuB_h9uqs0r1fzZZQc0DqDRvtBPipGEIM1c1QBMpfgYL49g1Pzk77ofwV7zktenJG1-bIrtIjq2bzc8r2etAeiUEk8HX9f1pz6Jvbj3wINANI_IRTWm3vs2a6oHIy-O_88BXAy5M7uhflU0uLnbWpq2_thUHJhjD-fQgg5HIcmBSSt21DunC9kLsKr-otsucLZ-3uvpLPqylBcRfrMF7Z4jKJWopqMENPVGk3qdq_tALQSMm5Rt7s4dOmNUoGSf2pfJxpo4zJsqiX3E);
-      }
-      .upload-dashed:hover {
-        background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuAJTZtVmKXXY2y0aBNFHTmZKH4H-HPBNFi4dzQ8Q6XtHUYRAUZfOkkHHY4ER6LDz38UY7YXZD10nJNFFtnNFWd8NHvt_k_JLkp5fBg9UqyO3cJ6aDtgvHj_Ghy7uIXIWOZtgMZW1FMFk1NH2eRC-_bQlk6JZHAzd2o1uW9itRXbA17ErCTvzilyboOqkVnUIQYjpjNn6t-bf-rJkCk0Edt3KuSJ99wwQhYbN8zH8pl5cHeoAB8AWfsuvGrCp1i9xAlzPFZm4k8wYjI);
-      }
-    </style>
-  </head>
-  <body
-    class="bg-background-light dark:bg-background-dark text-[#0e111b] dark:text-white min-h-screen flex flex-col font-display overflow-x-hidden"
-  >
-    <!-- Top Navigation -->
-    <header
-      class="w-full bg-white dark:bg-[#1a1d2d] border-b border-[#e8eaf3] dark:border-gray-800 sticky top-0 z-50"
-    >
-      <div
-        class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"
-      >
-        <div class="flex items-center gap-3">
-          <div
-            class="size-8 bg-hero-gradient rounded-lg flex items-center justify-center text-white"
-          >
-            <span class="material-symbols-outlined text-[20px]">analytics</span>
-          </div>
-          <h2
-            class="text-xl font-bold tracking-tight text-gray-900 dark:text-white"
-          >
-            Lifestyle Lens
-          </h2>
+      },
+    };
+  </script>
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+    }
+
+    .upload-dashed {
+      background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuB_h9uqs0r1fzZZQc0DqDRvtBPipGEIM1c1QBMpfgYL49g1Pzk77ofwV7zktenJG1-bIrtIjq2bzc8r2etAeiUEk8HX9f1pz6Jvbj3wINANI_IRTWm3vs2a6oHIy-O_88BXAy5M7uhflU0uLnbWpq2_thUHJhjD-fQgg5HIcmBSSt21DunC9kLsKr-otsucLZ-3uvpLPqylBcRfrMF7Z4jKJWopqMENPVGk3qdq_tALQSMm5Rt7s4dOmNUoGSf2pfJxpo4zJsqiX3E);
+    }
+
+    .upload-dashed:hover {
+      background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuAJTZtVmKXXY2y0aBNFHTmZKH4H-HPBNFi4dzQ8Q6XtHUYRAUZfOkkHHY4ER6LDz38UY7YXZD10nJNFFtnNFWd8NHvt_k_JLkp5fBg9UqyO3cJ6aDtgvHj_Ghy7uIXIWOZtgMZW1FMFk1NH2eRC-_bQlk6JZHAzd2o1uW9itRXbA17ErCTvzilyboOqkVnUIQYjpjNn6t-bf-rJkCk0Edt3KuSJ99wwQhYbN8zH8pl5cHeoAB8AWfsuvGrCp1i9xAlzPFZm4k8wYjI);
+    }
+  </style>
+</head>
+
+<body
+  class="bg-background-light dark:bg-background-dark text-[#0e111b] dark:text-white min-h-screen flex flex-col font-display overflow-x-hidden">
+  <!-- Top Navigation -->
+  <header class="w-full bg-white dark:bg-[#1a1d2d] border-b border-[#e8eaf3] dark:border-gray-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="size-8 bg-hero-gradient rounded-lg flex items-center justify-center text-white">
+          <span class="material-symbols-outlined text-[20px]">analytics</span>
         </div>
-        <nav class="hidden md:flex items-center gap-8">
-          <a
-            class="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
-            href="#"
-            >Dashboard</a
-          >
-          <a class="text-sm font-semibold text-primary" href="#">Assessment</a>
-          <a
-            class="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
-            href="#"
-            >History</a
-          >
-        </nav>
-        <div class="flex items-center gap-3">
-          <button
-            class="size-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            <span class="material-symbols-outlined">settings</span>
-          </button>
-          <button
-            class="size-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            <span class="material-symbols-outlined">account_circle</span>
-          </button>
-        </div>
+        <h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Lifestyle Lens
+        </h2>
       </div>
-    </header>
-    <main class="flex-grow flex flex-col">
-      <!-- Hero Section -->
-      <section class="relative bg-hero-gradient pt-20 pb-32 px-6">
+      <nav class="hidden md:flex items-center gap-8">
+        <a class="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+          href="#">Dashboard</a>
+        <a class="text-sm font-semibold text-primary" href="#">Assessment</a>
+        <a class="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+          href="#">History</a>
+        <a class="text-sm font-semibold text-red-500 hover:text-red-600 transition-colors" href="/logout">Logout</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button
+          class="size-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+        <button
+          class="size-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          <span class="material-symbols-outlined">account_circle</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="flex-grow flex flex-col">
+    <!-- Hero Section -->
+    <section class="relative bg-hero-gradient pt-20 pb-32 px-6">
+      <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+      <div class="max-w-4xl mx-auto text-center relative z-10 space-y-4">
         <div
-          class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"
-        ></div>
-        <div class="max-w-4xl mx-auto text-center relative z-10 space-y-4">
-          <div
-            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold tracking-wide uppercase mb-2"
-          >
-            <span class="material-symbols-outlined text-[16px]"
-              >verified_user</span
-            >
-            Lifestyle V2.0
-          </div>
-          <h1
-            class="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight"
-          >
-            Lifestyle Lens - PropertyAI
-          </h1>
-          <p
-            class="text-lg md:text-xl text-white/90 font-medium max-w-2xl mx-auto leading-relaxed"
-          >
-            AI-Powered Property Risk Analysis System. Upload property photos to
-            generate instant risk profiles and lifestyle compatibility scores.
-          </p>
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold tracking-wide uppercase mb-2">
+          <span class="material-symbols-outlined text-[16px]">verified_user</span>
+          Lifestyle V2.0
         </div>
-      </section>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight">
+          Lifestyle Lens - PropertyAI
+        </h1>
+        <p class="text-lg md:text-xl text-white/90 font-medium max-w-2xl mx-auto leading-relaxed">
+          AI-Powered Property Risk Analysis System. Upload property photos to
+          generate instant risk profiles and lifestyle compatibility scores.
+        </p>
+      </div>
+    </section>
 
-      <div class="w-full max-w-5xl mx-auto px-6 -mt-24 relative z-20 pb-20">
-        <div
-          class="bg-white dark:bg-[#1e2332] rounded-[2rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 md:p-12 flex flex-col gap-10"
-        >
-          <!-- Location + City Badge -->
-          <div class="flex flex-col gap-4">
-            <h3
-              class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2"
-            >
-              <span class="material-symbols-outlined text-primary"
-                >pin_drop</span
-              >
-              Property Location
-            </h3>
-            <div
-              class="flex flex-col sm:flex-row items-start sm:items-center gap-6"
-            >
-              <div class="relative w-full sm:w-72">
-                <label class="sr-only" for="pincode">Pincode</label>
-                <div
-                  class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
-                >
-                  <span class="material-symbols-outlined text-gray-400"
-                    >search</span
-                  >
-                </div>
-                <input
-                  class="block w-full pl-11 pr-10 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none font-medium shadow-sm"
-                  id="pincode"
-                  name="pincode"
-                  placeholder="Enter Pincode"
-                  type="text"
-                  value="110001"
-                />
-                <div
-                  class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none"
-                >
-                  <span
-                    class="material-symbols-outlined text-green-500 fill-current"
-                    >check_circle</span
-                  >
-                </div>
+    <div class="w-full max-w-5xl mx-auto px-6 -mt-24 relative z-20 pb-20">
+      <div
+        class="bg-white dark:bg-[#1e2332] rounded-[2rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 md:p-12 flex flex-col gap-10">
+        <!-- Location + City Badge -->
+        <div class="flex flex-col gap-4">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">pin_drop</span>
+            Property Location
+          </h3>
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <div class="relative w-full sm:w-72">
+              <label class="sr-only" for="pincode">Pincode</label>
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span class="material-symbols-outlined text-gray-400">search</span>
               </div>
-
-              <div
-                id="cityBadge"
-                class="flex items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50"
-              >
-                <div
-                  class="size-10 rounded-full bg-white dark:bg-indigo-800 text-primary shadow-sm flex items-center justify-center"
-                >
-                  <span class="material-symbols-outlined text-[20px]"
-                    >domain</span
-                  >
-                </div>
-                <div>
-                  <p
-                    id="cityTypeLabel"
-                    class="text-sm font-bold text-indigo-900 dark:text-indigo-100 leading-none mb-1"
-                  >
-                    Metro City Detected
-                  </p>
-                  <p
-                    id="cityTypeDesc"
-                    class="text-xs text-indigo-600 dark:text-indigo-300 font-medium"
-                  >
-                    Risk profile adjusted for urban density
-                  </p>
-                </div>
-              </div>
-              <!-- Address info populated from pincode lookup -->
-              <div
-                id="addressSection"
-                class="w-full sm:w-80 mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 text-sm"
-              >
-                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                  Address
-                </h4>
-                <div
-                  id="addressContent"
-                  class="text-gray-600 dark:text-gray-300 space-y-1"
-                >
-                  <div id="addr_postoffice">
-                    Post Office: <span class="font-medium">-</span>
-                  </div>
-                  <div id="addr_district">
-                    District: <span class="font-medium">-</span>
-                  </div>
-                  <div id="addr_state">
-                    State: <span class="font-medium">-</span>
-                  </div>
-                  <div id="addr_country">
-                    Country: <span class="font-medium">India</span>
-                  </div>
-                </div>
+              <input
+                class="block w-full pl-11 pr-10 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none font-medium shadow-sm"
+                id="pincode" name="pincode" placeholder="Enter Pincode" type="text" value="110001" />
+              <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                <span class="material-symbols-outlined text-green-500 fill-current">check_circle</span>
               </div>
             </div>
-          </div>
 
-          <!-- Upload Card -->
-          <div
-            class="bg-white dark:bg-[#15202b] rounded-xl p-6 border border-[#e8eaf3] shadow-sm"
-          >
-            <form
-              id="uploadForm"
-              action="/upload"
-              method="post"
-              enctype="multipart/form-data"
-              class="group/upload relative"
-            >
-              <!-- Hidden fields for location data -->
-              <input type="hidden" id="pincode_field" name="pincode" />
-              <input type="hidden" id="postoffice_field" name="postoffice" />
-              <input type="hidden" id="district_field" name="district" />
-              <input type="hidden" id="state_field" name="state" />
+            <div id="cityBadge"
+              class="flex items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50">
               <div
-                id="dropZone"
-                class="upload-dashed w-full bg-gray-50/50 dark:bg-gray-800/30 rounded-[1.5rem] transition-all duration-300 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer p-10 md:p-12 flex flex-col items-center justify-center gap-6 text-center"
-              >
-                <div
-                  class="size-20 rounded-full bg-blue-50 dark:bg-blue-900/30 text-primary flex items-center justify-center mb-2 group-hover/upload:scale-110 transition-transform duration-300"
-                >
-                  <span class="material-symbols-outlined text-[40px]"
-                    >cloud_upload</span
-                  >
-                </div>
-                <div class="space-y-2">
-                  <h3
-                    class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white"
-                  >
-                    Upload 2-4 property images
-                  </h3>
-                  <p
-                    class="text-gray-500 dark:text-gray-400 text-sm md:text-base"
-                  >
-                    Drag and drop files here or click to browse
-                  </p>
-                </div>
-                <div
-                  class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 font-medium bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full"
-                >
-                  <span class="material-symbols-outlined text-[16px]"
-                    >image</span
-                  >
-                  Supported: PNG, JPG, JPEG, WebP
-                </div>
-                <input
-                  id="fileInput"
-                  type="file"
-                  name="files"
-                  accept="image/png,image/jpeg,image/webp"
-                  multiple
-                  class="hidden"
-                />
+                class="size-10 rounded-full bg-white dark:bg-indigo-800 text-primary shadow-sm flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">domain</span>
               </div>
-            </form>
-
-            <div class="h-px w-full bg-gray-100 dark:bg-gray-700 my-6"></div>
-
-            <!-- Preview + Controls -->
-            <div class="space-y-6">
-              <div class="flex items-center justify-between">
-                <h4
-                  class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2"
-                >
-                  <span class="material-symbols-outlined text-primary"
-                    >grid_view</span
-                  >
-                  Uploaded Files
-                  <span
-                    id="fileCount"
-                    class="text-gray-400 font-normal text-sm ml-2"
-                    >(0 files)</span
-                  >
-                </h4>
-                <button
-                  id="clearBtn"
-                  type="button"
-                  class="text-sm text-red-500 hover:text-red-600 font-semibold flex items-center gap-1"
-                >
-                  Clear All
-                </button>
-              </div>
-
-              <div
-                id="previewGrid"
-                class="grid grid-cols-2 md:grid-cols-4 gap-4"
-              ></div>
-
-              <div class="flex flex-col items-center gap-4 pt-4">
-                <button
-                  id="analyzeBtn"
-                  type="submit"
-                  class="group w-full max-w-md h-14 bg-button-gradient text-white text-lg font-bold rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <span>Analyze Property</span>
-                  <span
-                    class="material-symbols-outlined group-hover:translate-x-1 transition-transform"
-                    >arrow_forward</span
-                  >
-                </button>
-                <p class="text-xs text-gray-400 flex items-center gap-1">
-                  <span class="material-symbols-outlined text-[14px]"
-                    >lock</span
-                  >
-                  Your data is encrypted and processed securely.
+              <div>
+                <p id="cityTypeLabel" class="text-sm font-bold text-indigo-900 dark:text-indigo-100 leading-none mb-1">
+                  Metro City Detected
+                </p>
+                <p id="cityTypeDesc" class="text-xs text-indigo-600 dark:text-indigo-300 font-medium">
+                  Risk profile adjusted for urban density
                 </p>
               </div>
             </div>
+            <!-- Address info populated from pincode lookup -->
+            <div id="addressSection"
+              class="w-full sm:w-80 mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 text-sm">
+              <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                Address
+              </h4>
+              <div id="addressContent" class="text-gray-600 dark:text-gray-300 space-y-1">
+                <div id="addr_postoffice">
+                  Post Office: <span class="font-medium">-</span>
+                </div>
+                <div id="addr_district">
+                  District: <span class="font-medium">-</span>
+                </div>
+                <div id="addr_state">
+                  State: <span class="font-medium">-</span>
+                </div>
+                <div id="addr_country">
+                  Country: <span class="font-medium">India</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="bg-white dark:bg-[#15202b] rounded-xl p-6 border border-[#e8eaf3] shadow-sm">
+          <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data"
+            class="group/upload relative">
+            <!-- Hidden fields for location data -->
+            <input type="hidden" id="pincode_field" name="pincode" />
+            <input type="hidden" id="postoffice_field" name="postoffice" />
+            <input type="hidden" id="district_field" name="district" />
+            <input type="hidden" id="state_field" name="state" />
+            <div id="dropZone"
+              class="upload-dashed w-full bg-gray-50/50 dark:bg-gray-800/30 rounded-[1.5rem] transition-all duration-300 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer p-10 md:p-12 flex flex-col items-center justify-center gap-6 text-center">
+              <div
+                class="size-20 rounded-full bg-blue-50 dark:bg-blue-900/30 text-primary flex items-center justify-center mb-2 group-hover/upload:scale-110 transition-transform duration-300">
+                <span class="material-symbols-outlined text-[40px]">cloud_upload</span>
+              </div>
+              <div class="space-y-2">
+                <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  Upload 2-4 property images
+                </h3>
+                <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base">
+                  Drag and drop files here or click to browse
+                </p>
+              </div>
+              <div
+                class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 font-medium bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full">
+                <span class="material-symbols-outlined text-[16px]">image</span>
+                Supported: PNG, JPG, JPEG, WebP
+              </div>
+              <input id="fileInput" type="file" name="files" accept="image/png,image/jpeg,image/webp" multiple
+                class="hidden" />
+            </div>
+          </form>
+
+          <div class="h-px w-full bg-gray-100 dark:bg-gray-700 my-6"></div>
+
+          <!-- Preview + Controls -->
+          <div class="space-y-6">
+            <div class="flex items-center justify-between">
+              <h4 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">grid_view</span>
+                Uploaded Files
+                <span id="fileCount" class="text-gray-400 font-normal text-sm ml-2">(0 files)</span>
+              </h4>
+              <button id="clearBtn" type="button"
+                class="text-sm text-red-500 hover:text-red-600 font-semibold flex items-center gap-1">
+                Clear All
+              </button>
+            </div>
+
+            <div id="previewGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+
+            <div class="flex flex-col items-center gap-4 pt-4">
+              <button id="analyzeBtn" type="submit"
+                class="group w-full max-w-md h-14 bg-button-gradient text-white text-lg font-bold rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2">
+                <span>Analyze Property</span>
+                <span
+                  class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+              <p class="text-xs text-gray-400 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">lock</span>
+                Your data is encrypted and processed securely.
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </main>
-    <!-- Footer -->
-    <footer
-      class="bg-white dark:bg-[#1a1d2d] border-t border-gray-100 dark:border-gray-800 py-8"
-    >
-      <div
-        class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4"
-      >
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          © 2025 PropertyAI Inc. All rights reserved.
-        </p>
-        <div class="flex gap-6">
-          <a
-            class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
-            href="#"
-            >Privacy Policy</a
-          >
-          <a
-            class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
-            href="#"
-            >Terms of Service</a
-          >
-          <a
-            class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
-            href="#"
-            >Help Center</a
-          >
-        </div>
+    </div>
+  </main>
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-[#1a1d2d] border-t border-gray-100 dark:border-gray-800 py-8">
+    <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        © 2025 PropertyAI Inc. All rights reserved.
+      </p>
+      <div class="flex gap-6">
+        <a class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">Privacy
+          Policy</a>
+        <a class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">Terms of
+          Service</a>
+        <a class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">Help
+          Center</a>
       </div>
-    </footer>
-    <script>
-      (() => {
-        const form = document.getElementById("uploadForm");
-        const dropZone = document.getElementById("dropZone");
-        const fileInput = document.getElementById("fileInput");
-        const previewGrid = document.getElementById("previewGrid");
-        const fileCount = document.getElementById("fileCount");
-        const clearBtn = document.getElementById("clearBtn");
-        const analyzeBtn = document.getElementById("analyzeBtn");
+    </div>
+  </footer>
+  <script>
+    (() => {
+      const form = document.getElementById("uploadForm");
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const previewGrid = document.getElementById("previewGrid");
+      const fileCount = document.getElementById("fileCount");
+      const clearBtn = document.getElementById("clearBtn");
+      const analyzeBtn = document.getElementById("analyzeBtn");
 
-        // If the analyze button is outside the <form>, ensure it triggers form submit
-        if (analyzeBtn && form) {
-          analyzeBtn.addEventListener("click", (ev) => {
-            ev.preventDefault();
-            if (typeof form.requestSubmit === "function") {
-              form.requestSubmit();
-            } else {
-              // Fallback for older browsers
-              form.submit();
-            }
-          });
-        }
-
-        let selectedFiles = [];
-
-        function updateCount(n) {
-          fileCount.textContent = `(${n} file${n === 1 ? "" : "s"})`;
-        }
-
-        function clearPreviews() {
-          previewGrid.innerHTML = "";
-          selectedFiles = [];
-          fileInput.value = "";
-          updateCount(0);
-        }
-
-        clearBtn.addEventListener("click", clearPreviews);
-
-        dropZone.addEventListener("click", () => fileInput.click());
-
-        ["dragenter", "dragover"].forEach((e) =>
-          dropZone.addEventListener(e, (ev) => {
-            ev.preventDefault();
-            dropZone.classList.add("ring-2", "ring-primary");
-          })
-        );
-        ["dragleave", "drop"].forEach((e) =>
-          dropZone.addEventListener(e, (ev) => {
-            ev.preventDefault();
-            dropZone.classList.remove("ring-2", "ring-primary");
-          })
-        );
-
-        dropZone.addEventListener("drop", (ev) => {
-          const dt = ev.dataTransfer;
-          if (dt && dt.files) {
-            selectedFiles = Array.from(dt.files);
-            renderPreviews(selectedFiles);
-          }
-        });
-
-        fileInput.addEventListener("change", () => {
-          selectedFiles = Array.from(fileInput.files || []);
-          renderPreviews(selectedFiles);
-        });
-
-        function renderPreviews(files) {
-          previewGrid.innerHTML = "";
-          const arr = files.slice(0, 8);
-          updateCount(arr.length);
-          arr.forEach((f) => {
-            if (!f.type.startsWith("image/")) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const url = e.target.result;
-              const card = document.createElement("div");
-              card.className =
-                "group relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800";
-              card.innerHTML = `<div class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"><button class="size-6 bg-white/90 rounded-full flex items-center justify-center text-gray-800 shadow-sm hover:bg-red-50 hover:text-red-500"><span class="material-symbols-outlined text-[16px]">close</span></button></div><div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${url}')"></div>`;
-              previewGrid.appendChild(card);
-            };
-            reader.readAsDataURL(f);
-          });
-        }
-
-        // Handle form submission
-        if (form) {
-          form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (selectedFiles.length === 0) {
-              alert("Please select at least one image");
-              return;
-            }
-            analyzeBtn.disabled = true;
-            analyzeBtn.textContent = "Uploading...";
-
-            // Populate hidden location fields
-            const pincodeInput = document.getElementById("pincode");
-            const addrPost = document.getElementById("addr_postoffice");
-            const addrDistrict = document.getElementById("addr_district");
-            const addrState = document.getElementById("addr_state");
-
-            document.getElementById("pincode_field").value =
-              pincodeInput?.value || "";
-            document.getElementById("postoffice_field").value =
-              addrPost?.querySelector("span.font-medium")?.textContent || "";
-            document.getElementById("district_field").value =
-              addrDistrict?.querySelector("span.font-medium")?.textContent ||
-              "";
-            document.getElementById("state_field").value =
-              addrState?.querySelector("span.font-medium")?.textContent || "";
-
-            const formData = new FormData(form);
-            selectedFiles.forEach((file) => {
-              formData.append("files", file);
-            });
-
-            try {
-              const res = await fetch("/upload", {
-                method: "POST",
-                body: formData,
-              });
-              if (res.redirected) window.location.href = res.url;
-            } catch (err) {
-              alert("Upload failed: " + err.message);
-              analyzeBtn.disabled = false;
-              analyzeBtn.textContent = "Analyze Property";
-            }
-          });
-        }
-      })();
-    </script>
-
-    <script>
-      // Real-time pincode classification + address lookup
-      (function () {
-        const pincodeInput = document.getElementById("pincode");
-        const cityBadge = document.getElementById("cityBadge");
-        const cityLabel = document.getElementById("cityTypeLabel");
-        const cityDesc = document.getElementById("cityTypeDesc");
-        const addrPost = document.getElementById("addr_postoffice");
-        const addrDistrict = document.getElementById("addr_district");
-        const addrState = document.getElementById("addr_state");
-        const addrCountry = document.getElementById("addr_country");
-        if (!pincodeInput || !cityBadge || !cityLabel || !cityDesc || !addrPost)
-          return;
-
-        // Short list of metro prefixes (non-exhaustive)
-        const metroPrefixes = new Set([
-          "110",
-          "400",
-          "560",
-          "600",
-          "700",
-          "500",
-          "411",
-          "380",
-          "395",
-          "302",
-          "226",
-          "208",
-          "641",
-          "682",
-        ]);
-
-        function classifyCode(code) {
-          if (!code) return "unknown";
-          const digits = code.replace(/\D/g, "");
-          if (digits.length < 3) return "unknown";
-          const prefix = digits.slice(0, 3);
-          return metroPrefixes.has(prefix) ? "metro" : "non-metro";
-        }
-
-        function applyState(state) {
-          if (state === "metro") {
-            cityBadge.classList.remove(
-              "bg-indigo-50",
-              "dark:bg-indigo-900/20",
-              "border-indigo-100",
-              "dark:border-indigo-800/50"
-            );
-            cityBadge.classList.remove(
-              "bg-yellow-50",
-              "dark:bg-yellow-900/20",
-              "border-yellow-100",
-              "dark:border-yellow-800/50"
-            );
-            cityBadge.classList.add(
-              "bg-green-50",
-              "dark:bg-green-900/20",
-              "border-green-100",
-              "dark:border-green-800/50"
-            );
-            cityLabel.textContent = "Metro City Detected";
-            cityDesc.textContent = "Risk profile adjusted for urban density";
-          } else if (state === "non-metro") {
-            cityBadge.classList.remove(
-              "bg-indigo-50",
-              "dark:bg-indigo-900/20",
-              "border-indigo-100",
-              "dark:border-indigo-800/50"
-            );
-            cityBadge.classList.remove(
-              "bg-green-50",
-              "dark:bg-green-900/20",
-              "border-green-100",
-              "dark:border-green-800/50"
-            );
-            cityBadge.classList.add(
-              "bg-yellow-50",
-              "dark:bg-yellow-900/20",
-              "border-yellow-100",
-              "dark:border-yellow-800/50"
-            );
-            cityLabel.textContent = "Non-Metro Area";
-            cityDesc.textContent =
-              "Risk profile adjusted for lower urban density";
+      // If the analyze button is outside the <form>, ensure it triggers form submit
+      if (analyzeBtn && form) {
+        analyzeBtn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          if (typeof form.requestSubmit === "function") {
+            form.requestSubmit();
           } else {
-            cityBadge.classList.remove(
-              "bg-green-50",
-              "dark:bg-green-900/20",
-              "border-green-100",
-              "dark:border-green-800/50",
-              "bg-yellow-50",
-              "dark:bg-yellow-900/20",
-              "border-yellow-100",
-              "dark:border-yellow-800/50"
-            );
-            cityBadge.classList.add(
-              "bg-indigo-50",
-              "dark:bg-indigo-900/20",
-              "border-indigo-100",
-              "dark:border-indigo-800/50"
-            );
-            cityLabel.textContent = "Detecting...";
-            cityDesc.textContent = "Type pincode to classify city in real time";
+            // Fallback for older browsers
+            form.submit();
           }
-        }
+        });
+      }
 
-        async function fetchAddress(pincode) {
-          if (!/^[0-9]{6}$/.test(pincode)) {
-            addrPost.innerHTML =
-              'Post Office: <span class="font-medium">-</span>';
-            addrDistrict.innerHTML =
-              'District: <span class="font-medium">-</span>';
-            addrState.innerHTML = 'State: <span class="font-medium">-</span>';
-            addrCountry.innerHTML =
-              'Country: <span class="font-medium">India</span>';
+      let selectedFiles = [];
+
+      function updateCount(n) {
+        fileCount.textContent = `(${n} file${n === 1 ? "" : "s"})`;
+      }
+
+      function clearPreviews() {
+        previewGrid.innerHTML = "";
+        selectedFiles = [];
+        fileInput.value = "";
+        updateCount(0);
+      }
+
+      clearBtn.addEventListener("click", clearPreviews);
+
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      ["dragenter", "dragover"].forEach((e) =>
+        dropZone.addEventListener(e, (ev) => {
+          ev.preventDefault();
+          dropZone.classList.add("ring-2", "ring-primary");
+        })
+      );
+      ["dragleave", "drop"].forEach((e) =>
+        dropZone.addEventListener(e, (ev) => {
+          ev.preventDefault();
+          dropZone.classList.remove("ring-2", "ring-primary");
+        })
+      );
+
+      dropZone.addEventListener("drop", (ev) => {
+        const dt = ev.dataTransfer;
+        if (dt && dt.files) {
+          selectedFiles = Array.from(dt.files);
+          renderPreviews(selectedFiles);
+        }
+      });
+
+      fileInput.addEventListener("change", () => {
+        selectedFiles = Array.from(fileInput.files || []);
+        renderPreviews(selectedFiles);
+      });
+
+      function renderPreviews(files) {
+        previewGrid.innerHTML = "";
+        const arr = files.slice(0, 8);
+        updateCount(arr.length);
+        arr.forEach((f) => {
+          if (!f.type.startsWith("image/")) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const url = e.target.result;
+            const card = document.createElement("div");
+            card.className =
+              "group relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800";
+            card.innerHTML = `<div class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"><button class="size-6 bg-white/90 rounded-full flex items-center justify-center text-gray-800 shadow-sm hover:bg-red-50 hover:text-red-500"><span class="material-symbols-outlined text-[16px]">close</span></button></div><div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${url}')"></div>`;
+            previewGrid.appendChild(card);
+          };
+          reader.readAsDataURL(f);
+        });
+      }
+
+      // Handle form submission
+      if (form) {
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (selectedFiles.length === 0) {
+            alert("Please select at least one image");
             return;
           }
-          addrPost.innerHTML =
-            'Post Office: <span class="font-medium">Searching...</span>';
-          addrDistrict.innerHTML =
-            'District: <span class="font-medium">...</span>';
-          addrState.innerHTML = 'State: <span class="font-medium">...</span>';
-          try {
-            const res = await fetch(
-              `https://api.postalpincode.in/pincode/${pincode}`
-            );
-            const data = await res.json();
-            if (
-              Array.isArray(data) &&
-              data[0].Status === "Success" &&
-              data[0].PostOffice &&
-              data[0].PostOffice.length > 0
-            ) {
-              const po = data[0].PostOffice[0];
-              addrPost.innerHTML = `Post Office: <span class="font-medium">${po.Name}</span>`;
-              addrDistrict.innerHTML = `District: <span class="font-medium">${po.District}</span>`;
-              addrState.innerHTML = `State: <span class="font-medium">${po.State}</span>`;
-              addrCountry.innerHTML = `Country: <span class="font-medium">${
-                po.Country || "India"
-              }</span>`;
-            } else {
-              addrPost.innerHTML =
-                'Post Office: <span class="font-medium">Not found</span>';
-              addrDistrict.innerHTML =
-                'District: <span class="font-medium">-</span>';
-              addrState.innerHTML = 'State: <span class="font-medium">-</span>';
-            }
-          } catch (err) {
-            addrPost.innerHTML =
-              'Post Office: <span class="font-medium">Lookup error</span>';
-            addrDistrict.innerHTML =
-              'District: <span class="font-medium">-</span>';
-            addrState.innerHTML = 'State: <span class="font-medium">-</span>';
-          }
-        }
+          analyzeBtn.disabled = true;
+          analyzeBtn.textContent = "Uploading...";
 
-        pincodeInput.addEventListener("input", (e) => {
-          const val = e.target.value || "";
-          const digits = val.replace(/\D/g, "");
-          const state = classifyCode(val);
-          applyState(state);
-          if (digits.length === 6) {
-            fetchAddress(digits);
-          } else {
-            addrPost.innerHTML =
-              'Post Office: <span class="font-medium">-</span>';
-            addrDistrict.innerHTML =
-              'District: <span class="font-medium">-</span>';
-            addrState.innerHTML = 'State: <span class="font-medium">-</span>';
-            addrCountry.innerHTML =
-              'Country: <span class="font-medium">India</span>';
+          // Populate hidden location fields
+          const pincodeInput = document.getElementById("pincode");
+          const addrPost = document.getElementById("addr_postoffice");
+          const addrDistrict = document.getElementById("addr_district");
+          const addrState = document.getElementById("addr_state");
+
+          document.getElementById("pincode_field").value =
+            pincodeInput?.value || "";
+          document.getElementById("postoffice_field").value =
+            addrPost?.querySelector("span.font-medium")?.textContent || "";
+          document.getElementById("district_field").value =
+            addrDistrict?.querySelector("span.font-medium")?.textContent ||
+            "";
+          document.getElementById("state_field").value =
+            addrState?.querySelector("span.font-medium")?.textContent || "";
+
+          const formData = new FormData(form);
+          selectedFiles.forEach((file) => {
+            formData.append("files", file);
+          });
+
+          try {
+            const res = await fetch("/upload", {
+              method: "POST",
+              body: formData,
+            });
+            if (res.redirected) window.location.href = res.url;
+          } catch (err) {
+            alert("Upload failed: " + err.message);
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = "Analyze Property";
           }
         });
+      }
+    })();
+  </script>
 
-        // initialize
-        applyState(classifyCode(pincodeInput.value || ""));
-        const initDigits = (pincodeInput.value || "").replace(/\D/g, "");
-        if (initDigits.length === 6) fetchAddress(initDigits);
-      })();
-    </script>
-  </body>
+  <script>
+    // Real-time pincode classification + address lookup
+    (function () {
+      const pincodeInput = document.getElementById("pincode");
+      const cityBadge = document.getElementById("cityBadge");
+      const cityLabel = document.getElementById("cityTypeLabel");
+      const cityDesc = document.getElementById("cityTypeDesc");
+      const addrPost = document.getElementById("addr_postoffice");
+      const addrDistrict = document.getElementById("addr_district");
+      const addrState = document.getElementById("addr_state");
+      const addrCountry = document.getElementById("addr_country");
+      if (!pincodeInput || !cityBadge || !cityLabel || !cityDesc || !addrPost)
+        return;
+
+      // Short list of metro prefixes (non-exhaustive)
+      const metroPrefixes = new Set([
+        "110",
+        "400",
+        "560",
+        "600",
+        "700",
+        "500",
+        "411",
+        "380",
+        "395",
+        "302",
+        "226",
+        "208",
+        "641",
+        "682",
+      ]);
+
+      function classifyCode(code) {
+        if (!code) return "unknown";
+        const digits = code.replace(/\D/g, "");
+        if (digits.length < 3) return "unknown";
+        const prefix = digits.slice(0, 3);
+        return metroPrefixes.has(prefix) ? "metro" : "non-metro";
+      }
+
+      function applyState(state) {
+        if (state === "metro") {
+          cityBadge.classList.remove(
+            "bg-indigo-50",
+            "dark:bg-indigo-900/20",
+            "border-indigo-100",
+            "dark:border-indigo-800/50"
+          );
+          cityBadge.classList.remove(
+            "bg-yellow-50",
+            "dark:bg-yellow-900/20",
+            "border-yellow-100",
+            "dark:border-yellow-800/50"
+          );
+          cityBadge.classList.add(
+            "bg-green-50",
+            "dark:bg-green-900/20",
+            "border-green-100",
+            "dark:border-green-800/50"
+          );
+          cityLabel.textContent = "Metro City Detected";
+          cityDesc.textContent = "Risk profile adjusted for urban density";
+        } else if (state === "non-metro") {
+          cityBadge.classList.remove(
+            "bg-indigo-50",
+            "dark:bg-indigo-900/20",
+            "border-indigo-100",
+            "dark:border-indigo-800/50"
+          );
+          cityBadge.classList.remove(
+            "bg-green-50",
+            "dark:bg-green-900/20",
+            "border-green-100",
+            "dark:border-green-800/50"
+          );
+          cityBadge.classList.add(
+            "bg-yellow-50",
+            "dark:bg-yellow-900/20",
+            "border-yellow-100",
+            "dark:border-yellow-800/50"
+          );
+          cityLabel.textContent = "Non-Metro Area";
+          cityDesc.textContent =
+            "Risk profile adjusted for lower urban density";
+        } else {
+          cityBadge.classList.remove(
+            "bg-green-50",
+            "dark:bg-green-900/20",
+            "border-green-100",
+            "dark:border-green-800/50",
+            "bg-yellow-50",
+            "dark:bg-yellow-900/20",
+            "border-yellow-100",
+            "dark:border-yellow-800/50"
+          );
+          cityBadge.classList.add(
+            "bg-indigo-50",
+            "dark:bg-indigo-900/20",
+            "border-indigo-100",
+            "dark:border-indigo-800/50"
+          );
+          cityLabel.textContent = "Detecting...";
+          cityDesc.textContent = "Type pincode to classify city in real time";
+        }
+      }
+
+      async function fetchAddress(pincode) {
+        if (!/^[0-9]{6}$/.test(pincode)) {
+          addrPost.innerHTML =
+            'Post Office: <span class="font-medium">-</span>';
+          addrDistrict.innerHTML =
+            'District: <span class="font-medium">-</span>';
+          addrState.innerHTML = 'State: <span class="font-medium">-</span>';
+          addrCountry.innerHTML =
+            'Country: <span class="font-medium">India</span>';
+          return;
+        }
+        addrPost.innerHTML =
+          'Post Office: <span class="font-medium">Searching...</span>';
+        addrDistrict.innerHTML =
+          'District: <span class="font-medium">...</span>';
+        addrState.innerHTML = 'State: <span class="font-medium">...</span>';
+        try {
+          const res = await fetch(
+            `https://api.postalpincode.in/pincode/${pincode}`
+          );
+          const data = await res.json();
+          if (
+            Array.isArray(data) &&
+            data[0].Status === "Success" &&
+            data[0].PostOffice &&
+            data[0].PostOffice.length > 0
+          ) {
+            const po = data[0].PostOffice[0];
+            addrPost.innerHTML = `Post Office: <span class="font-medium">${po.Name}</span>`;
+            addrDistrict.innerHTML = `District: <span class="font-medium">${po.District}</span>`;
+            addrState.innerHTML = `State: <span class="font-medium">${po.State}</span>`;
+            addrCountry.innerHTML = `Country: <span class="font-medium">${po.Country || "India"
+              }</span>`;
+          } else {
+            addrPost.innerHTML =
+              'Post Office: <span class="font-medium">Not found</span>';
+            addrDistrict.innerHTML =
+              'District: <span class="font-medium">-</span>';
+            addrState.innerHTML = 'State: <span class="font-medium">-</span>';
+          }
+        } catch (err) {
+          addrPost.innerHTML =
+            'Post Office: <span class="font-medium">Lookup error</span>';
+          addrDistrict.innerHTML =
+            'District: <span class="font-medium">-</span>';
+          addrState.innerHTML = 'State: <span class="font-medium">-</span>';
+        }
+      }
+
+      pincodeInput.addEventListener("input", (e) => {
+        const val = e.target.value || "";
+        const digits = val.replace(/\D/g, "");
+        const state = classifyCode(val);
+        applyState(state);
+        if (digits.length === 6) {
+          fetchAddress(digits);
+        } else {
+          addrPost.innerHTML =
+            'Post Office: <span class="font-medium">-</span>';
+          addrDistrict.innerHTML =
+            'District: <span class="font-medium">-</span>';
+          addrState.innerHTML = 'State: <span class="font-medium">-</span>';
+          addrCountry.innerHTML =
+            'Country: <span class="font-medium">India</span>';
+        }
+      });
+
+      // initialize
+      applyState(classifyCode(pincodeInput.value || ""));
+      const initDigits = (pincodeInput.value || "").replace(/\D/g, "");
+      if (initDigits.length === 6) fetchAddress(initDigits);
+    })();
+  </script>
+  <script>
+    // Automatic logout on tab close
+    (function () {
+      let isNavigating = false;
+
+      // Detect internal navigation
+      document.addEventListener('click', function (e) {
+        const link = e.target.closest('a');
+        const button = e.target.closest('button[type=submit]');
+        if (link || button) {
+          isNavigating = true;
+        }
+      });
+
+      document.addEventListener('submit', function () {
+        isNavigating = true;
+      });
+
+      window.addEventListener('beforeunload', function (e) {
+        if (!isNavigating) {
+          // Use sendBeacon for reliable background request
+          navigator.sendBeacon('/logout');
+        }
+      });
+    })();
+  </script>
+</body>
+
 </html>
