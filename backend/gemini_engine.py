@@ -508,6 +508,21 @@ def analyze_with_gemini(image_paths: List[str], api_key: str) -> Dict[str, Any]:
     try:
         result = json.loads(response_text)
         print("✓ JSON parsed successfully")
+        usage = {}
+        try:
+            meta = getattr(response, "usage_metadata", None)
+            if meta:
+                usage = {
+                    "input_tokens": getattr(meta, "input_token_count", None) or getattr(meta, "prompt_token_count", None),
+                    "output_tokens": getattr(meta, "output_token_count", None) or getattr(meta, "candidates_token_count", None),
+                    "total_tokens": getattr(meta, "total_token_count", None)
+                }
+        except Exception:
+            usage = {}
+        try:
+            analyze_with_gemini._last_usage = usage
+        except Exception:
+            pass
         return result
     except json.JSONDecodeError as e:
         print(f"✗ JSON parsing failed: {e}")
@@ -781,9 +796,15 @@ def run_full_pipeline(image_paths: List[str]) -> Dict[str, Any]:
 
     analysis_result = analyze_with_gemini(image_paths, api_key)
     scoring_result = calculate_score(analysis_result)
+    usage = {}
+    try:
+        usage = getattr(analyze_with_gemini, "_last_usage", {}) or {}
+    except Exception:
+        usage = {}
 
     return {
         "analysis": analysis_result,
-        "scoring": scoring_result
+        "scoring": scoring_result,
+        "usage": usage
     }
 
