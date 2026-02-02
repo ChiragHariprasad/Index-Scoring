@@ -107,6 +107,7 @@
               <thead>
                 <tr class="text-slate-400 text-[11px] uppercase tracking-[0.15em] font-black border-b border-slate-50">
                   <th class="py-5 px-8">User Info</th>
+                  <th class="py-5 px-8">Username</th>
                   <th class="py-5 px-8">Role</th>
                   <th class="py-5 px-8">Status</th>
                   <th class="py-5 px-8">Last Active</th>
@@ -127,6 +128,9 @@
                           <span class="text-[10px] text-slate-400 font-bold">{{ user.email }}</span>
                         </div>
                       </div>
+                    </td>
+                    <td class="py-5 px-8">
+                      <span class="text-sm font-medium text-slate-700">{{ user.username or '-' }}</span>
                     </td>
                     <td class="py-5 px-8">
                       <span class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm
@@ -216,6 +220,10 @@
                   <input type="text" id="userName" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="John Doe">
                 </div>
                 <div>
+                  <label class="block text-sm font-bold text-slate-700 mb-2">Username (optional)</label>
+                  <input type="text" id="userUsername" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="username (leave blank to use email local-part)">
+                </div>
+                <div>
                   <label class="block text-sm font-bold text-slate-700 mb-2">Email</label>
                   <input type="email" id="userEmail" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="john@example.com">
                 </div>
@@ -226,6 +234,10 @@
                     <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
                   </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-slate-700 mb-2">Temporary Password (optional)</label>
+                  <input type="text" id="userPassword" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Leave blank to auto-generate">
                 </div>
               </div>
               <div class="flex gap-3">
@@ -242,22 +254,29 @@
     async function submitAddUser(event) {
       event.preventDefault();
       const name = document.getElementById('userName').value;
+      const username = document.getElementById('userUsername').value || undefined;
       const email = document.getElementById('userEmail').value;
       const role = document.getElementById('userRole').value;
+      const password = document.getElementById('userPassword').value || undefined;
 
       try {
         const res = await fetch('/admin/add-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, role })
+          body: JSON.stringify({ name, username, email, role, password })
         });
         const data = await res.json();
         if (res.ok) {
-          alert('✓ User successfully created: ' + name);
+          let msg = '✓ User successfully created: ' + name;
+          if (data.username) msg += '\nUsername: ' + data.username;
+          if (data.temp_password) msg += '\nTemporary password: ' + data.temp_password;
+          if (data.login_url) msg += '\nLogin URL: ' + (window.location.origin || '') + data.login_url;
+          if (data.note) msg += '\nNote: ' + data.note;
+          alert(msg);
           document.getElementById('addUserModal')?.remove();
           location.reload();
         } else {
-          alert('✕ Error: ' + (data.message || 'Failed to add user'));
+          alert('✕ Error: ' + (data.message || data.error || 'Failed to add user'));
         }
       } catch (e) {
         alert('✕ Error: ' + e.message);
@@ -282,6 +301,10 @@
                   <div>
                     <label class="block text-sm font-bold text-slate-700 mb-2">Email</label>
                     <input type="email" id="editUserEmail" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="${user.email}">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Username</label>
+                    <input type="text" id="editUserUsername" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="${user.username || ''}">
                   </div>
                   <div>
                     <label class="block text-sm font-bold text-slate-700 mb-2">Role</label>
@@ -309,6 +332,7 @@
     async function submitEditUser(event, userId) {
       event.preventDefault();
       const name = document.getElementById('editUserName').value;
+      const username = document.getElementById('editUserUsername').value || undefined;
       const email = document.getElementById('editUserEmail').value;
       const role = document.getElementById('editUserRole').value;
 
@@ -316,7 +340,7 @@
         const res = await fetch(`/admin/user/${userId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, role })
+          body: JSON.stringify({ name, username, email, role })
         });
         const data = await res.json();
         if (res.ok) {

@@ -196,11 +196,17 @@
             <h1 id="greeting">Welcome</h1>
             <p class="subtitle" id="subtitle">Security Level: Standard Access</p>
 
+            {% if error %}
+                <div class="alert error">{{ error }}</div>
+            {% elif message %}
+                <div class="alert success">{{ message }}</div>
+            {% endif %}
+
             <form action="/login" method="POST">
                 <div class="form-group">
                     <label>Identity</label>
                     <div class="input-wrapper">
-                        <input type="text" name="username" placeholder="Username" required>
+                        <input type="text" name="username" placeholder="Username or Email" required>
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
                 </div>

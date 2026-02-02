@@ -236,6 +236,12 @@
                     <button onclick="toggleAddUserModal()" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
                         <span class="material-symbols-rounded text-[18px]">person_add</span> Add User
                     </button>
+                    <button onclick="testEmail()" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">
+                        <span class="material-symbols-rounded text-[18px]">email</span> Test Email
+                    </button>
+                    <button onclick="manageOutbox()" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-yellow-600 rounded-xl hover:bg-yellow-700 transition-all shadow-lg shadow-yellow-200">
+                        <span class="material-symbols-rounded text-[18px]">inbox</span> Outbox
+                    </button>
                   </div>
                 </div>
                 
@@ -597,6 +603,65 @@
         }
       } catch (e) {
         alert("✕ Connection Interrupted: " + e.message);
+      }
+    }
+
+    async function testEmail() {
+      try {
+        const res = await fetch("/admin/test-email", { method: "POST" });
+        const data = await res.json();
+        if (res.ok && data.status === "sent") {
+          alert("✓ Test email sent to " + data.to);
+        } else if (res.ok && data.status === "saved") {
+          alert("⚠️ Test email saved to outbox: " + (data.message || data.to));
+        } else {
+          alert("✕ Test failed: " + (data.message || res.status));
+        }
+      } catch (e) {
+        alert("✕ Connection Interrupted: " + e.message);
+      }
+    }
+
+    async function manageOutbox() {
+      try {
+        const res = await fetch('/admin/outbox');
+        const data = await res.json();
+        if (!res.ok) {
+          alert('✕ Error: ' + (data.message || res.status));
+          return;
+        }
+        if (!data.files || data.files.length === 0) {
+          alert('✓ Outbox is empty');
+          return;
+        }
+        const list = data.files.map(f => f.filename + ' (' + f.size + ' bytes)').join('\n');
+        const fname = prompt('Outbox files:\n\n' + list + '\n\nEnter filename to view or resend:');
+        if (!fname) return;
+        const action = prompt('Enter "view" or "resend"');
+        if (!action) return;
+        if (action.toLowerCase() === 'view') {
+          const r = await fetch('/admin/outbox/view?filename=' + encodeURIComponent(fname));
+          const d = await r.json();
+          if (r.ok) {
+            alert(JSON.stringify(d, null, 2));
+          } else {
+            alert('✕ Error: ' + (d.message || r.status));
+          }
+        } else if (action.toLowerCase() === 'resend') {
+          if (!confirm('Resend ' + fname + '?')) return;
+          const r = await fetch('/admin/outbox/resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: fname }) });
+          const d = await r.json();
+          if (r.ok) {
+            alert(JSON.stringify(d, null, 2));
+            location.reload();
+          } else {
+            alert('✕ Error: ' + (d.message || r.status));
+          }
+        } else {
+          alert('Invalid action')
+        }
+      } catch (e) {
+        alert('✕ Error: ' + e.message);
       }
     }
   </script>

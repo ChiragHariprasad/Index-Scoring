@@ -27,7 +27,13 @@ import time
 import json
 import csv
 import io
+import hashlib
+import binascii
+import secrets
+import glob
+import threading
 from email.message import EmailMessage
+from email import message_from_bytes, policy
 from gemini_engine import run_full_pipeline
 from dotenv import load_dotenv
 
@@ -176,14 +182,13 @@ Last Activity: {stats['last_activity']}
 """
         return (text.encode('utf-8'), "text/plain", f"{username}-activity-report.txt")
 
-def send_email_with_attachment(to_email: str, subject: str, body_text: str, attachment_bytes: bytes, attachment_filename: str, attachment_mimetype: str) -> bool:
+def send_email_with_attachment(to_email: str, subject: str, body_text: str, attachment_bytes: bytes, attachment_filename: str, attachment_mimetype: str) -> tuple[bool, str | None]:
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT") or "587")
     user = os.getenv("SMTP_USER")
     password = os.getenv("SMTP_PASS")
     from_addr = os.getenv("SMTP_FROM") or user or "noreply@example.com"
-    if not host:
-        return False
+
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = from_addr
@@ -191,18 +196,68 @@ def send_email_with_attachment(to_email: str, subject: str, body_text: str, atta
     msg.set_content(body_text)
     maintype, subtype = (attachment_mimetype.split("/", 1) + ["octet-stream"])[:2]
     msg.add_attachment(attachment_bytes, maintype=maintype, subtype=subtype, filename=attachment_filename)
+
+    # If SMTP_HOST is not configured, either attempt local debug SMTP (only if enabled) or save to outbox
+    if not host:
+        debug_enabled = os.getenv("SMTP_DEBUG", "").lower() in ("1", "true", "yes")
+        debug_host = os.getenv("SMTP_DEBUG_HOST", "localhost")
+        debug_port = int(os.getenv("SMTP_DEBUG_PORT", "1025"))
+
+        if debug_enabled:
+            print(f"SMTP_HOST not configured: SMTP_DEBUG enabled, attempting local SMTP at {debug_host}:{debug_port}")
+            try:
+                with smtplib.SMTP(debug_host, debug_port, timeout=5) as s:
+                    try:
+                        s.send_message(msg)
+                        print(f"Sent email via local SMTP at {debug_host}:{debug_port}")
+                        return (True, None)
+                    except Exception:
+                        print("Local SMTP send failed (check local SMTP server). Falling back to outbox.")
+            except Exception:
+                print("Local SMTP connection failed (no local SMTP server). Falling back to outbox.")
+        else:
+            print("SMTP_HOST not configured: saving message to outbox. To test sending to a local SMTP server set SMTP_DEBUG=1 and run a debug SMTP server (e.g., 'python -m smtpd -n -c DebuggingServer localhost:1025' or use smtp4dev).")
+
+        # Save to outbox for later inspection
+        try:
+            outdir = os.path.join(os.path.dirname(__file__), "outbox")
+            os.makedirs(outdir, exist_ok=True)
+            fname_base = f"{int(time.time())}-{uuid.uuid4()}"
+            eml_path = os.path.join(outdir, f"{fname_base}.eml")
+            with open(eml_path, "wb") as f:
+                f.write(msg.as_bytes())
+            print(f"SMTP not configured: saved message to outbox: {eml_path}")
+            return (True, f"saved-to-outbox:{eml_path}")
+        except Exception as e:
+            print(f"Failed to save email to outbox: {e}")
+            return (False, f"outbox-save-failed: {e}")
+        except Exception as e:
+            print(f"Failed to save email to outbox: {e}")
+            return (False, f"outbox-save-failed: {e}")
+
+    # Normal path: send via configured SMTP server
     try:
         with smtplib.SMTP(host, port, timeout=20) as s:
             try:
                 s.starttls()
-            except Exception:
-                pass
+            except Exception as e:
+                # Not fatal but log warning
+                print(f"Warning: starttls failed: {e}")
             if user and password:
-                s.login(user, password)
-            s.send_message(msg)
-        return True
-    except Exception:
-        return False
+                try:
+                    s.login(user, password)
+                except Exception as e:
+                    print(f"SMTP login failed: {e}")
+                    return (False, f"SMTP login failed: {e}")
+            try:
+                s.send_message(msg)
+            except Exception as e:
+                print(f"SMTP send_message failed: {e}")
+                return (False, f"SMTP send failed: {e}")
+        return (True, None)
+    except Exception as e:
+        print(f"SMTP connection/send error: {e}")
+        return (False, str(e))
 
 # -------------------------------------------------
 # IN-MEMORY STATE (session-based)
@@ -210,6 +265,42 @@ def send_email_with_attachment(to_email: str, subject: str, body_text: str, atta
 PROCESS_STATUS = {}   # session_id → PROCESSING | DONE | ERROR
 RESULT_STORE = {}     # session_id → result dict
 SESSION_USERS = {}
+PASSWORD_RESET_TOKENS: dict = {}
+
+# Default mapping used to seed legacy usernames (stored in DB for real-time updates)
+DEFAULT_USERNAME_MAP = [
+    ("chirag.h@iiflsamasta.com", "chirag"),
+    ("sathish.palanisamy@iiflsamasta.com", "sathish"),
+    ("nalinik@iiflsamasta.com", "nalini"),
+    ("jeyasri.m@iiflsamasta.com", "jeyasri"),
+    ("jagadeesha@iiflsamasta.com", "jagadesh"),
+    ("shraddha@iiflsamasta.com", "shraddha"),
+    ("lakshmipathi.v@iiflsamasta.com", "lakshmipathi"),
+    ("christuraja.a@iiflsamasta.com", "christuraja"),
+    ("ranjith.devadiga@iiflsamasta.com", "ranjith"),
+    ("sanandaganesh.g@iiflsamasta.com", "sanandaganesh"),
+    ("gourav.hulbatte@iiflsamasta.com", "gourav"),
+    ("mv.madan@iiflsamasta.com", "madanmv"),
+    ("p.deepakumar@iiflsamasta.com", "deepakumar"),
+    ("benothomas.bobby@iiflsamasta.com", "beno"),
+    ("george.prasad@iiflsamasta.com", "george"),
+    ("manoj.malipatil@iiflsamasta.com", "manoj"),
+]
+
+
+def ensure_unique_username(base: str) -> str:
+    """Return a unique username by appending a numeric suffix if needed."""
+    base = (base or '').strip() or 'user'
+    final = base
+    attempt = 0
+    while True:
+        cur.execute("SELECT COUNT(*) FROM users WHERE username = ?", (final,))
+        if cur.fetchone()[0] == 0:
+            return final
+        attempt += 1
+        final = f"{base}{attempt}"
+        if attempt > 100:
+            return f"{base}-{int(time.time())}"
 
 # -------------------------------------------------
 # BACKGROUND PROCESSOR
@@ -307,9 +398,7 @@ def login_page(request: Request):
 
 @app.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    # Simple hardcoded credentials for demonstration
-    # In production, use a database and hash passwords
-    users = ["jeyasri", "jadagesh", "beno", "satish", "george", "dhanush"]
+    # Admin backdoor (existing default)
     if username == "admin" and password == "password":
         request.session["user"] = "admin"
         try:
@@ -317,18 +406,56 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         except Exception:
             pass
         return RedirectResponse(url="/admin", status_code=303)
-    if username in users and password == "password123":
-        request.session["user"] = username
-        try:
-            record_event(username, "login", None)
-        except Exception:
-            pass
-        return RedirectResponse(url="/", status_code=303)
-    
-    return templates.TemplateResponse(
-        "login.html", 
-        {"request": request, "error": "Invalid username or password"}
-    )
+
+    # Lookup user by username, name or email
+    try:
+        cur.execute("SELECT id, username, name, email, role, is_active, password_hash FROM users WHERE username = ? OR name = ? OR email = ? LIMIT 1", (username, username, username))
+        row = cur.fetchone()
+        if not row:
+            # Try fallback: see if username is an email local part (before @)
+            if "@" not in username:
+                cur.execute("SELECT id, username, name, email, role, is_active, password_hash FROM users WHERE email LIKE ? LIMIT 1", (f"%{username}%",))
+                row = cur.fetchone()
+        if not row:
+            return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid username or password"})
+
+        # Correctly unpack DB row (id, username, name, email, role, is_active, password_hash)
+        uid, db_username, name, email, role, is_active, password_hash = row
+        # Choose a stable session identity (prefer username, fall back to email, then provided input)
+        session_identity = db_username or email or username
+
+        if not bool(is_active):
+            return templates.TemplateResponse("login.html", {"request": request, "error": "Account is deactivated. Contact admin."})
+
+        # If password set, verify it
+        if password_hash and verify_password(password, password_hash):
+            request.session["user"] = session_identity
+            try:
+                record_event(session_identity, "login", None)
+            except Exception:
+                pass
+            # update last_active
+            cur.execute("UPDATE users SET last_active = ? WHERE id = ?", (time.strftime('%Y-%m-%d %H:%M:%S'), uid))
+            conn.commit()
+            return RedirectResponse(url="/", status_code=303)
+        elif not password_hash and password == "password123":
+            # allow legacy login and store hash
+            new_hash = hash_password(password)
+            cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, uid))
+            conn.commit()
+            request.session["user"] = session_identity
+            try:
+                record_event(session_identity, "login", None)
+            except Exception:
+                pass
+            cur.execute("UPDATE users SET last_active = ? WHERE id = ?", (time.strftime('%Y-%m-%d %H:%M:%S'), uid))
+            conn.commit()
+            return RedirectResponse(url="/", status_code=303)
+        else:
+            return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid username or password"})
+    except Exception as e:
+        print(f"Login error: {e}")
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Login error"})
 
 @app.api_route("/logout", methods=["GET", "POST"])
 def logout(request: Request):
@@ -428,16 +555,17 @@ def admin_dashboard(request: Request, user: str = Depends(get_admin_user)):
     
     # Get users for user management section
     try:
-        cur.execute("SELECT id, name, email, role, is_active, last_active FROM users ORDER BY created_at DESC")
+        cur.execute("SELECT id, username, name, email, role, is_active, last_active FROM users ORDER BY created_at DESC")
         users_rows = cur.fetchall()
         users = [
             {
                 "id": row[0],
-                "name": row[1],
-                "email": row[2],
-                "role": row[3],
-                "is_active": bool(row[4]),
-                "last_active": row[5]
+                "username": row[1],
+                "name": row[2],
+                "email": row[3],
+                "role": row[4],
+                "is_active": bool(row[5]),
+                "last_active": row[6]
             }
             for row in users_rows
         ]
@@ -507,10 +635,233 @@ async def admin_send_user_report(request: Request, user: str = Depends(get_admin
     to_email = USER_EMAILS.get(username) or f"{username}@example.com"
     subject = f"Activity Report for {username}"
     body_text = "Please find attached your latest activity report."
-    ok = send_email_with_attachment(to_email, subject, body_text, content, filename, mimetype)
+    ok, err = send_email_with_attachment(to_email, subject, body_text, content, filename, mimetype)
     if not ok:
-        return JSONResponse({"status": "error", "message": "email not configured or send failed"}, status_code=500)
+        status_code = 400 if err and "SMTP_HOST" in err else 500
+        msg = err or "email not configured or send failed"
+        print(f"Email send failed for {to_email}: {msg}")
+        return JSONResponse({"status": "error", "message": msg}, status_code=status_code)
+    # If the function succeeded but saved to outbox, inform the caller
+    if err and str(err).startswith("saved-to-outbox"):
+        return JSONResponse({"status": "saved", "message": err, "to": to_email})
     return JSONResponse({"status": "sent", "to": to_email})
+
+
+@app.post("/admin/test-email")
+def admin_test_email(user: str = Depends(get_admin_user)):
+    """Send a small diagnostic test email to the configured admin address to validate SMTP settings."""
+    to_email = os.getenv("ADMIN_EMAIL") or os.getenv("SMTP_FROM") or "admin@example.com"
+    subject = "Index-Scoring SMTP Test"
+    body_text = "This is a test email from Index-Scoring. If you received this, your SMTP settings are valid." 
+    ok, err = send_email_with_attachment(to_email, subject, body_text, b"Test body", "test.txt", "text/plain")
+    if not ok:
+        status_code = 400 if err and "SMTP_HOST" in err else 500
+        msg = err or "send failed"
+        print(f"Test email failed: {msg}")
+        return JSONResponse({"status": "error", "message": msg}, status_code=status_code)
+    if err and str(err).startswith("saved-to-outbox"):
+        return JSONResponse({"status": "saved", "message": err, "to": to_email})
+    return JSONResponse({"status": "sent", "to": to_email})
+
+# -----------------------------
+# Outbox management (admin)
+# -----------------------------
+@app.get("/admin/outbox")
+def admin_list_outbox(user: str = Depends(get_admin_user)):
+    outdir = os.path.join(os.path.dirname(__file__), "outbox")
+    os.makedirs(outdir, exist_ok=True)
+    files = sorted(os.listdir(outdir))
+    entries = []
+    for f in files:
+        path = os.path.join(outdir, f)
+        try:
+            stat = os.stat(path)
+            entries.append({"filename": f, "size": stat.st_size, "mtime": int(stat.st_mtime)})
+        except Exception:
+            continue
+    return JSONResponse({"files": entries})
+
+@app.get("/admin/outbox/view")
+def admin_view_outbox(filename: str, user: str = Depends(get_admin_user)):
+    safe = os.path.basename(filename)
+    path = os.path.join(os.path.dirname(__file__), "outbox", safe)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="file not found")
+    with open(path, "rb") as f:
+        raw = f.read()
+    try:
+        msg = message_from_bytes(raw, policy=policy.default)
+        body = ""
+        try:
+            b = msg.get_body(preferencelist=("plain",))
+            if b:
+                body = b.get_content()
+        except Exception:
+            body = ""
+        return JSONResponse({"subject": msg.get("Subject"), "from": msg.get("From"), "to": msg.get("To"), "body_preview": (body or "").strip()[:1000]})
+    except Exception:
+        return JSONResponse({"raw": raw.decode("utf-8", errors="replace")})
+
+@app.post("/admin/outbox/resend")
+async def admin_resend_outbox(request: Request, user: str = Depends(get_admin_user)):
+    data = await request.json()
+    filename = data.get("filename")
+    if not filename:
+        raise HTTPException(status_code=400, detail="filename required")
+    safe = os.path.basename(filename)
+    path = os.path.join(os.path.dirname(__file__), "outbox", safe)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="file not found")
+    with open(path, "rb") as f:
+        raw = f.read()
+    try:
+        msg = message_from_bytes(raw, policy=policy.default)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": f"failed to parse message: {e}"}, status_code=500)
+
+    # Attempt to send using current SMTP configuration or local debug SMTP
+    host = os.getenv("SMTP_HOST") or os.getenv("SMTP_DEBUG_HOST", "localhost")
+    port = int(os.getenv("SMTP_PORT") or os.getenv("SMTP_DEBUG_PORT", "1025"))
+    try:
+        with smtplib.SMTP(host, port, timeout=20) as s:
+            try:
+                s.starttls()
+            except Exception:
+                pass
+            user = os.getenv("SMTP_USER")
+            password = os.getenv("SMTP_PASS")
+            if user and password:
+                try:
+                    s.login(user, password)
+                except Exception as e:
+                    return JSONResponse({"status": "error", "message": f"SMTP login failed: {e}"}, status_code=500)
+            try:
+                s.send_message(msg)
+            except Exception as e:
+                return JSONResponse({"status": "error", "message": f"SMTP send failed: {e}"}, status_code=500)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": f"SMTP connection failed: {e}"}, status_code=500)
+
+    # On success remove the outbox file
+    try:
+        os.remove(path)
+    except Exception:
+        pass
+    return JSONResponse({"status": "resent", "filename": filename})
+
+# ----------------------------------
+# Outbox auto-retry background worker
+# ----------------------------------
+
+def send_eml_via_smtp(eml_path: str) -> tuple[bool, str | None]:
+    """Attempt to send a saved .eml file using current SMTP settings.
+    Returns (True, None) on success or (False, error_message) on failure."""
+    try:
+        with open(eml_path, "rb") as f:
+            raw = f.read()
+        msg = message_from_bytes(raw, policy=policy.default)
+    except Exception as e:
+        return (False, f"parse-error:{e}")
+
+    host = os.getenv("SMTP_HOST")
+    debug_enabled = os.getenv("SMTP_DEBUG", "").lower() in ("1", "true", "yes")
+    if not host and debug_enabled:
+        host = os.getenv("SMTP_DEBUG_HOST", "localhost")
+    port = int(os.getenv("SMTP_PORT") or os.getenv("SMTP_DEBUG_PORT", "1025"))
+
+    if not host:
+        return (False, "no-smtp-config")
+
+    user = os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASS")
+
+    try:
+        with smtplib.SMTP(host, port, timeout=20) as s:
+            try:
+                s.starttls()
+            except Exception:
+                pass
+            if user and password:
+                try:
+                    s.login(user, password)
+                except Exception as e:
+                    return (False, f"smtp-login-failed:{e}")
+            try:
+                s.send_message(msg)
+            except Exception as e:
+                return (False, f"smtp-send-failed:{e}")
+        return (True, None)
+    except Exception as e:
+        return (False, f"smtp-conn-failed:{e}")
+
+
+def outbox_retry_loop():
+    interval = int(os.getenv("SMTP_OUTBOX_RETRY_INTERVAL", "60"))
+    enabled = os.getenv("SMTP_OUTBOX_AUTO_RETRY", "1").lower() in ("1", "true", "yes")
+    print(f"Outbox auto-retry enabled={enabled}, interval={interval}s")
+
+    while enabled:
+        try:
+            smtp_ready = bool(os.getenv("SMTP_HOST")) or os.getenv("SMTP_DEBUG", "").lower() in ("1", "true", "yes")
+            if not smtp_ready:
+                time.sleep(interval)
+                continue
+
+            outdir = os.path.join(os.path.dirname(__file__), "outbox")
+            if not os.path.isdir(outdir):
+                time.sleep(interval)
+                continue
+
+            files = sorted(glob.glob(os.path.join(outdir, "*.eml")))
+            for fpath in files:
+                try:
+                    ok, err = send_eml_via_smtp(fpath)
+                    if ok:
+                        print(f"Outbox resend succeeded: {fpath}")
+                        try:
+                            os.remove(fpath)
+                        except Exception:
+                            pass
+                    else:
+                        print(f"Outbox resend failed for {fpath}: {err}")
+                    # small pause between attempts
+                    time.sleep(1)
+                except Exception as e:
+                    print(f"Outbox worker error for {fpath}: {e}")
+
+            time.sleep(interval)
+        except Exception as e:
+            print(f"Outbox retry loop error: {e}")
+            time.sleep(interval)
+
+
+@app.on_event("startup")
+def start_outbox_retry_worker():
+    if os.getenv("SMTP_OUTBOX_AUTO_RETRY", "1").lower() in ("1", "true", "yes"):
+        t = threading.Thread(target=outbox_retry_loop, daemon=True)
+        t.start()
+
+
+@app.post('/admin/outbox/retry')
+def admin_retry_outbox(user: str = Depends(get_admin_user)):
+    """Attempt to resend all files from the outbox immediately."""
+    outdir = os.path.join(os.path.dirname(__file__), "outbox")
+    if not os.path.isdir(outdir):
+        return JSONResponse({"results": []})
+    files = sorted(glob.glob(os.path.join(outdir, "*.eml")))
+    results = []
+    for fpath in files:
+        ok, err = send_eml_via_smtp(fpath)
+        if ok:
+            try:
+                os.remove(fpath)
+            except Exception:
+                pass
+            results.append({"file": os.path.basename(fpath), "status": "sent"})
+        else:
+            results.append({"file": os.path.basename(fpath), "status": "failed", "error": err})
+    return JSONResponse({"results": results})
+
 # Processing screen
 @app.get("/processing", response_class=HTMLResponse)
 def processing(request: Request, session_id: str, user: str = Depends(get_current_user)):
@@ -872,26 +1223,155 @@ async def view_shared_report(share_id: str, request: Request):
 # Initialize users table
 def init_users_db():
     try:
-        # Drop the old table if it exists with wrong schema
-        cur.execute("DROP TABLE IF EXISTS users")
-        
-        # Create new users table
+        # Create users table if it does not exist (preserve existing users)
         cur.execute("""
-            CREATE TABLE users (
+            CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
+                username TEXT UNIQUE,
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 role TEXT DEFAULT 'user',
                 is_active BOOLEAN DEFAULT 1,
+                password_hash TEXT,
                 last_active TEXT,
                 created_at INTEGER
             )
         """)
         conn.commit()
+
+        # Ensure password_hash and username columns exist for older DBs
+        cur.execute("PRAGMA table_info(users)")
+        cols = [r[1] for r in cur.fetchall()]
+        if 'password_hash' not in cols:
+            try:
+                cur.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+                conn.commit()
+            except Exception:
+                pass
+        if 'username' not in cols:
+            try:
+                cur.execute("ALTER TABLE users ADD COLUMN username TEXT")
+                conn.commit()
+            except Exception:
+                pass
+
+        # Migrate existing users: set username from email local-part if missing
+        try:
+            cur.execute("SELECT id, email, username FROM users")
+            for uid, email, uname in cur.fetchall():
+                if not uname or uname.strip() == '':
+                    candidate = (email or '').split('@')[0]
+                    # ensure uniqueness
+                    base = candidate or f'user_{uid[:8]}'
+                    final = ensure_unique_username(base)
+                    cur.execute("UPDATE users SET username = ? WHERE id = ?", (final, uid))
+            conn.commit()
+        except Exception:
+            pass
+
+        # Ensure username_mappings table exists (persistent mappings for legacy users)
+        try:
+            cur.execute("CREATE TABLE IF NOT EXISTS username_mappings (email TEXT UNIQUE, username TEXT, created_at INTEGER, updated_at INTEGER)")
+            conn.commit()
+            # Seed mappings table from DEFAULT_USERNAME_MAP if it's empty
+            cur.execute("SELECT COUNT(*) FROM username_mappings")
+            if cur.fetchone()[0] == 0:
+                for em, un in DEFAULT_USERNAME_MAP:
+                    try:
+                        cur.execute("INSERT INTO username_mappings (email, username, created_at, updated_at) VALUES (?, ?, ?, ?)", (em, un, int(time.time()), int(time.time())))
+                    except Exception:
+                        pass
+                conn.commit()
+        except Exception:
+            pass
+
     except Exception as e:
         print(f"Error initializing users table: {e}")
         conn.commit()
     conn.commit()
+
+# Password hashing helpers
+
+def hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 200000)
+    return f"{salt}${binascii.hexlify(dk).decode()}"
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    try:
+        salt, hexhash = stored_hash.split('$', 1)
+        dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 200000)
+        return binascii.hexlify(dk).decode() == hexhash
+    except Exception:
+        return False
+
+
+# Simple plaintext email sender that uses the same fallback logic as attachments
+def send_plain_email(to_email: str, subject: str, body_text: str) -> tuple[bool, str | None]:
+    # Reuse logic from send_email_with_attachment but without attachment
+    host = os.getenv("SMTP_HOST")
+    port = int(os.getenv("SMTP_PORT") or "587")
+    user = os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASS")
+    from_addr = os.getenv("SMTP_FROM") or user or "noreply@example.com"
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = from_addr
+    msg["To"] = to_email
+    msg.set_content(body_text)
+
+    if not host:
+        # Respect SMTP_DEBUG flag before attempting local SMTP; otherwise save directly to outbox
+        debug_enabled = os.getenv("SMTP_DEBUG", "").lower() in ("1", "true", "yes")
+        debug_host = os.getenv("SMTP_DEBUG_HOST", "localhost")
+        debug_port = int(os.getenv("SMTP_DEBUG_PORT", "1025"))
+        if debug_enabled:
+            try:
+                with smtplib.SMTP(debug_host, debug_port, timeout=5) as s:
+                    s.send_message(msg)
+                    return (True, None)
+            except Exception:
+                # Save to outbox if local SMTP failed
+                try:
+                    outdir = os.path.join(os.path.dirname(__file__), "outbox")
+                    os.makedirs(outdir, exist_ok=True)
+                    fname_base = f"{int(time.time())}-{uuid.uuid4()}"
+                    eml_path = os.path.join(outdir, f"{fname_base}.eml")
+                    with open(eml_path, "wb") as f:
+                        f.write(msg.as_bytes())
+                    print("Local SMTP connection failed: saved message to outbox")
+                    return (True, f"saved-to-outbox:{eml_path}")
+                except Exception as se:
+                    return (False, f"outbox-save-failed: {se}")
+        else:
+            # Directly save to outbox without attempting a local connection
+            try:
+                outdir = os.path.join(os.path.dirname(__file__), "outbox")
+                os.makedirs(outdir, exist_ok=True)
+                fname_base = f"{int(time.time())}-{uuid.uuid4()}"
+                eml_path = os.path.join(outdir, f"{fname_base}.eml")
+                with open(eml_path, "wb") as f:
+                    f.write(msg.as_bytes())
+                print("SMTP not configured: saved message to outbox. To test sending to localhost, set SMTP_DEBUG=1 and run a debug SMTP server on localhost:1025.")
+                return (True, f"saved-to-outbox:{eml_path}")
+            except Exception as se:
+                return (False, f"outbox-save-failed: {se}")
+
+    try:
+        with smtplib.SMTP(host, port, timeout=20) as s:
+            try:
+                s.starttls()
+            except Exception:
+                pass
+            if user and password:
+                s.login(user, password)
+            s.send_message(msg)
+        return (True, None)
+    except Exception as e:
+        return (False, str(e))
+
 
 init_users_db()
 
@@ -903,17 +1383,18 @@ async def admin_users_page(request: Request):
         if not session_user or session_user != "admin":
             return RedirectResponse(url="/login", status_code=302)
         
-        cur.execute("SELECT id, name, email, role, is_active, last_active FROM users ORDER BY created_at DESC")
+        cur.execute("SELECT id, username, name, email, role, is_active, last_active FROM users ORDER BY created_at DESC")
         rows = cur.fetchall()
         
         users = [
             {
                 "id": row[0],
-                "name": row[1],
-                "email": row[2],
-                "role": row[3],
-                "is_active": bool(row[4]),
-                "last_active": row[5]
+                "username": row[1],
+                "name": row[2],
+                "email": row[3],
+                "role": row[4],
+                "is_active": bool(row[5]),
+                "last_active": row[6]
             }
             for row in rows
         ]
@@ -938,17 +1419,18 @@ async def get_users_api(request: Request):
         if not session_user or session_user != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized")
         
-        cur.execute("SELECT id, name, email, role, is_active, last_active FROM users ORDER BY created_at DESC")
+        cur.execute("SELECT id, username, name, email, role, is_active, last_active FROM users ORDER BY created_at DESC")
         rows = cur.fetchall()
         
         users = [
             {
                 "id": row[0],
-                "name": row[1],
-                "email": row[2],
-                "role": row[3],
-                "is_active": bool(row[4]),
-                "last_active": row[5]
+                "username": row[1],
+                "name": row[2],
+                "email": row[3],
+                "role": row[4],
+                "is_active": bool(row[5]),
+                "last_active": row[6]
             }
             for row in rows
         ]
@@ -960,7 +1442,7 @@ async def get_users_api(request: Request):
 
 @app.post("/admin/add-user")
 async def add_user(request: Request):
-    """Add a new user"""
+    """Add a new user and email initial credentials"""
     try:
         session_user = request.session.get("user")
         if not session_user or session_user != "admin":
@@ -969,19 +1451,76 @@ async def add_user(request: Request):
         data = await request.json()
         name = data.get("name")
         email = data.get("email")
+        username = data.get("username")
         role = data.get("role", "user")
+        password = data.get("password")
         
         if not name or not email:
             return JSONResponse({"message": "Name and email required"}, status_code=400)
         
+        # Generate username from provided value, mapping, or email local-part
+        if not username or str(username).strip() == '':
+            # Check persistent mappings first
+            mapped = None
+            try:
+                cur.execute("SELECT username FROM username_mappings WHERE email = ?", (email,))
+                r = cur.fetchone()
+                if r:
+                    mapped = r[0]
+            except Exception:
+                mapped = None
+            if mapped:
+                username = mapped
+            else:
+                username = (email or '').split('@')[0]
+        username = str(username).strip()
+        # Ensure username uniqueness
+        username = ensure_unique_username(username)
+
+
+        # Ensure username uniqueness
+        base = username or f'user'
+        final = base
+        attempt = 0
+        while True:
+            cur.execute("SELECT COUNT(*) FROM users WHERE username = ?", (final,))
+            if cur.fetchone()[0] == 0:
+                break
+            attempt += 1
+            final = f"{base}{attempt}"
+            if attempt > 100:
+                final = f"{base}-{int(time.time())}"
+                break
+        username = final
+
         user_id = str(uuid.uuid4())
+        # Generate a temporary password if none provided
+        if not password:
+            password = secrets.token_urlsafe(8)
+        password_hash = hash_password(password)
+
         cur.execute(
-            "INSERT INTO users (id, name, email, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (user_id, name, email, role, 1, int(time.time()))
+            "INSERT INTO users (id, username, name, email, role, is_active, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, username, name, email, role, 1, password_hash, int(time.time()))
         )
         conn.commit()
-        
-        return JSONResponse({"status": "success", "user_id": user_id})
+
+        # Send credentials email (best effort)
+        subject = "Your account has been created"
+        body = f"Hi {name},\n\nAn account has been created for you on Index-Scoring.\n\nUsername: {username}\nTemporary password: {password}\n\nPlease log in and change your password via the Reset Password flow.\n\nIf you did not expect this email, contact your administrator.\n"
+        sent, send_msg = send_plain_email(email, subject, body)
+
+        resp = {"status": "success", "user_id": user_id}
+        # Include created username, temporary password and login url in response for admin convenience
+        resp["username"] = username
+        resp["temp_password"] = password
+        resp["login_url"] = "/login"
+        if sent and send_msg:
+            resp["note"] = f"Email saved: {send_msg}"
+        elif not sent:
+            resp["note"] = f"Email send failed: {send_msg}"
+
+        return JSONResponse(resp)
     except sqlite3.IntegrityError:
         return JSONResponse({"message": "Email already exists"}, status_code=400)
     except Exception as e:
@@ -996,7 +1535,7 @@ async def get_user(user_id: str, request: Request):
         if not session_user or session_user != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized")
         
-        cur.execute("SELECT id, name, email, role, is_active FROM users WHERE id = ?", (user_id,))
+        cur.execute("SELECT id, username, name, email, role, is_active FROM users WHERE id = ?", (user_id,))
         row = cur.fetchone()
         
         if not row:
@@ -1004,10 +1543,11 @@ async def get_user(user_id: str, request: Request):
         
         return JSONResponse({
             "id": row[0],
-            "name": row[1],
-            "email": row[2],
-            "role": row[3],
-            "is_active": bool(row[4])
+            "username": row[1],
+            "name": row[2],
+            "email": row[3],
+            "role": row[4],
+            "is_active": bool(row[5])
         })
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -1023,14 +1563,35 @@ async def update_user(user_id: str, request: Request):
         
         data = await request.json()
         name = data.get("name")
+        username = data.get("username")
         email = data.get("email")
         role = data.get("role")
         
-        cur.execute(
-            "UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?",
-            (name, email, role, user_id)
-        )
-        conn.commit()
+        # Build update fields dynamically (only update provided values)
+        fields = []
+        params = []
+        if username is not None:
+            username = str(username).strip()
+            fields.append("username = ?")
+            params.append(username)
+        if name is not None:
+            fields.append("name = ?")
+            params.append(name)
+        if email is not None:
+            fields.append("email = ?")
+            params.append(email)
+        if role is not None:
+            fields.append("role = ?")
+            params.append(role)
+        if not fields:
+            return JSONResponse({"message": "No fields to update"}, status_code=400)
+        params.append(user_id)
+        sql = "UPDATE users SET " + ", ".join(fields) + " WHERE id = ?"
+        try:
+            cur.execute(sql, tuple(params))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            return JSONResponse({"message": "Username or email already exists"}, status_code=400)
         
         return JSONResponse({"status": "success"})
     except sqlite3.IntegrityError:
@@ -1087,21 +1648,14 @@ async def reset_user_password(user_id: str, request: Request):
         
         email, name = row
         reset_token = str(uuid.uuid4())
-        
-        # Send email
-        try:
-            msg = EmailMessage()
-            msg['Subject'] = 'Password Reset Request'
-            msg['From'] = os.getenv("SENDER_EMAIL", "admin@example.com")
-            msg['To'] = email
-            msg.set_content(f"Hi {name},\n\nClick here to reset your password:\nhttp://localhost:8000/reset-password?token={reset_token}\n\nThis link expires in 1 hour.")
-            
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-                smtp.login(os.getenv("SENDER_EMAIL"), os.getenv("SENDER_PASSWORD"))
-                smtp.send_message(msg)
-        except Exception as e:
-            print(f"Email send error: {str(e)}")
-        
+        expiry = int(time.time()) + 3600  # 1 hour
+        PASSWORD_RESET_TOKENS[reset_token] = (user_id, expiry)
+
+        reset_url = f"http://localhost:8000/reset-password?token={reset_token}"
+        body = f"Hi {name},\n\nClick here to reset your password:\n{reset_url}\n\nThis link expires in 1 hour.\n"
+        sent, err = send_plain_email(email, "Password Reset Request", body)
+        if not sent:
+            return JSONResponse({"status": "error", "message": err or "send failed"}, status_code=500)
         return JSONResponse({"status": "success", "message": f"Reset link sent to {email}"})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -1121,3 +1675,98 @@ async def delete_user(user_id: str, request: Request):
         return JSONResponse({"status": "success"})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/admin/seed-usernames")
+async def admin_seed_usernames(request: Request, user: str = Depends(get_admin_user)):
+    """Seed usernames and passwords for a known set of legacy users so they can log in."""
+    try:
+        try:
+            body = await request.json()
+        except Exception:
+            body = None
+
+        # Default mapping from provided list (email -> username)
+        default_map = [
+            ("chirag.h@iiflsamasta.com", "chirag"),
+            ("sathish.palanisamy@iiflsamasta.com", "sathish"),
+            ("nalinik@iiflsamasta.com", "nalini"),
+            ("jeyasri.m@iiflsamasta.com", "jeyasri"),
+            ("jagadeesha@iiflsamasta.com", "jagadesh"),
+            ("shraddha@iiflsamasta.com", "shraddha"),
+            ("lakshmipathi.v@iiflsamasta.com", "lakshmipathi"),
+            ("christuraja.a@iiflsamasta.com", "christuraja"),
+            ("ranjith.devadiga@iiflsamasta.com", "ranjith"),
+            ("sanandaganesh.g@iiflsamasta.com", "sanandaganesh"),
+            ("gourav.hulbatte@iiflsamasta.com", "gourav"),
+            ("mv.madan@iiflsamasta.com", "madanmv"),
+            ("p.deepakumar@iiflsamasta.com", "deepakumar"),
+            ("tanuj.s@iiflsamasta.com", "tanuj"),
+            ("benothomas.bobby@iiflsamasta.com", "beno"),
+            ("george.prasad@iiflsamasta.com", "george"),
+            ("manoj.malipatil@iiflsamasta.com", "manoj"),
+        ]
+
+        inputs = body.get("users") if body and isinstance(body, dict) and body.get("users") else None
+        if inputs and isinstance(inputs, list):
+            m = [(it.get("email"), it.get("username")) for it in inputs if it.get("email") and it.get("username")]
+        else:
+            m = default_map
+
+        results = []
+        for email, username in m:
+            cur.execute("SELECT id, name, username FROM users WHERE email = ?", (email,))
+            row = cur.fetchone()
+            if not row:
+                results.append({"email": email, "status": "not_found"})
+                continue
+            uid = row[0]
+            # set username and default password 'password123'
+            pw = "password123"
+            pwhash = hash_password(pw)
+            try:
+                cur.execute("UPDATE users SET username = ?, password_hash = ? WHERE id = ?", (username, pwhash, uid))
+                conn.commit()
+                results.append({"email": email, "username": username, "status": "updated", "temp_password": pw})
+            except Exception as e:
+                results.append({"email": email, "error": str(e)})
+        return JSONResponse({"results": results})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/reset-password", response_class=HTMLResponse)
+def reset_password_page(request: Request, token: str | None = None):
+    """Render a simple password reset form for a token"""
+    # validate token existence
+    valid = False
+    if token and token in PASSWORD_RESET_TOKENS:
+        uid, expiry = PASSWORD_RESET_TOKENS[token]
+        if int(time.time()) <= expiry:
+            valid = True
+    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "valid": valid})
+
+
+@app.post("/reset-password")
+async def reset_password_action(request: Request):
+    data = await request.form()
+    token = data.get("token")
+    new_password = data.get("new_password")
+    if not token or not new_password:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "valid": False, "error": "Token and new password are required"})
+    entry = PASSWORD_RESET_TOKENS.get(token)
+    if not entry:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "valid": False, "error": "Invalid or expired token"})
+    uid, expiry = entry
+    if int(time.time()) > expiry:
+        del PASSWORD_RESET_TOKENS[token]
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "valid": False, "error": "Token expired"})
+    # Update password
+    new_hash = hash_password(new_password)
+    cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, uid))
+    conn.commit()
+    try:
+        del PASSWORD_RESET_TOKENS[token]
+    except Exception:
+        pass
+    return templates.TemplateResponse("login.html", {"request": request, "message": "Password updated. Please login."})
