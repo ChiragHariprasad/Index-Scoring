@@ -272,7 +272,7 @@ def send_email_with_attachment(to_email: str, subject: str, body_text: str, atta
                         print(f"SMTP login failed: {e}")
                         return (False, f"SMTP login failed: {e}")
                 try:
-                    s.send_message(msg)
+                    s.send_message(msg) 
                 except Exception as e:
                     print(f"SMTP send_message failed: {e}")
                     return (False, f"SMTP send failed: {e}")
@@ -645,6 +645,149 @@ def admin_stats(user: str = Depends(get_admin_user)):
 @app.get("/admin/export-user-pdf")
 def admin_export_user_pdf(username: str, user: str = Depends(get_admin_user)):
     content, mimetype, filename = build_user_report_document(username)
+    return StreamingResponse(iter([content]), media_type=mimetype, headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+def build_user_report_csv(username: str) -> tuple[bytes, str, str]:
+    """Return CSV bytes for a single user's activity summary."""
+    stats = get_user_stats(username)
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["username", "logins", "uploads", "reports", "tokens_total", "tokens_input", "tokens_output", "last_activity"])
+    writer.writerow([
+        stats.get("username"),
+        stats.get("logins"),
+        stats.get("uploads"),
+        stats.get("reports"),
+        stats.get("tokens", {}).get("total"),
+        stats.get("tokens", {}).get("input"),
+        stats.get("tokens", {}).get("output"),
+        stats.get("last_activity"),
+    ])
+    data = out.getvalue().encode("utf-8")
+    return (data, "text/csv", f"{username}-activity-report.csv")
+
+
+@app.get("/admin/export-user-csv")
+def admin_export_user_csv(username: str, user: str = Depends(get_admin_user)):
+    content, mimetype, filename = build_user_report_csv(username)
+    return StreamingResponse(iter([content]), media_type=mimetype, headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+def build_all_users_csv() -> tuple[bytes, str, str]:
+    """Generate CSV summarizing all users (registered in users table)."""
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["username", "logins", "uploads", "reports", "tokens_total", "tokens_input", "tokens_output", "last_activity"])
+    try:
+        cur.execute("SELECT username FROM users")
+        user_rows = [r[0] for r in cur.fetchall()]
+    except Exception:
+        user_rows = []
+    # Fallback: include any usernames that appear in events but not in users
+    try:
+        cur.execute("SELECT DISTINCT username FROM events")
+        event_users = [r[0] for r in cur.fetchall()]
+    except Exception:
+        event_users = []
+    all_users = sorted(set(user_rows + event_users))
+    for u in all_users:
+        stats = get_user_stats(u)
+        writer.writerow([
+            stats.get("username"),
+            stats.get("logins"),
+            stats.get("uploads"),
+            stats.get("reports"),
+            stats.get("tokens", {}).get("total"),
+            stats.get("tokens", {}).get("input"),
+            stats.get("tokens", {}).get("output"),
+            stats.get("last_activity"),
+        ])
+    data = out.getvalue().encode("utf-8")
+    return (data, "text/csv", "all-users-activity-report.csv")
+
+
+@app.get("/admin/export-all-users-csv")
+def admin_export_all_users_csv(user: str = Depends(get_admin_user)):
+    content, mimetype, filename = build_all_users_csv()
+    return StreamingResponse(iter([content]), media_type=mimetype, headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+def build_all_users_pdf() -> tuple[bytes, str, str]:
+    """Generate a PDF summarizing all users in a table."""
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=letter, topMargin=0.5*inch)
+        styles = getSampleStyleSheet()
+        story = []
+        story.append(Paragraph("All Users Activity Summary", styles['Heading1']))
+        story.append(Spacer(1, 0.2*inch))
+        # Table header
+        data_table = [["User", "Logins", "Uploads", "Reports", "Tokens", "Input", "Output", "Last Activity"]]
+        try:
+            cur.execute("SELECT username FROM users")
+            user_rows = [r[0] for r in cur.fetchall()]
+        except Exception:
+            user_rows = []
+        try:
+            cur.execute("SELECT DISTINCT username FROM events")
+            event_users = [r[0] for r in cur.fetchall()]
+        except Exception:
+            event_users = []
+        all_users = sorted(set(user_rows + event_users))
+        for u in all_users:
+            s = get_user_stats(u)
+            data_table.append([
+                s.get('username'),
+                s.get('logins'),
+                s.get('uploads'),
+                s.get('reports'),
+                s.get('tokens', {}).get('total'),
+                s.get('tokens', {}).get('input'),
+                s.get('tokens', {}).get('output'),
+                s.get('last_activity')
+            ])
+        table = Table(data_table, repeatRows=1, hAlign='LEFT')
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667fea')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+        ]))
+        story.append(table)
+        doc.build(story)
+        buf.seek(0)
+        return (buf.getvalue(), "application/pdf", "all-users-activity-report.pdf")
+    except Exception:
+        # fallback: plain text
+        content = "All Users Activity Summary\n\n"
+        try:
+            cur.execute("SELECT username FROM users")
+            user_rows = [r[0] for r in cur.fetchall()]
+        except Exception:
+            user_rows = []
+        try:
+            cur.execute("SELECT DISTINCT username FROM events")
+            event_users = [r[0] for r in cur.fetchall()]
+        except Exception:
+            event_users = []
+        all_users = sorted(set(user_rows + event_users))
+        for u in all_users:
+            s = get_user_stats(u)
+            content += f"{s.get('username')} - Logins: {s.get('logins')}, Uploads: {s.get('uploads')}, Reports: {s.get('reports')}, Tokens: {s.get('tokens', {}).get('total')}, Last: {s.get('last_activity')}\n"
+        return (content.encode('utf-8'), 'text/plain', 'all-users-activity-report.txt')
+
+
+@app.get("/admin/export-all-users-pdf")
+def admin_export_all_users_pdf(user: str = Depends(get_admin_user)):
+    content, mimetype, filename = build_all_users_pdf()
     return StreamingResponse(iter([content]), media_type=mimetype, headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @app.post("/admin/send-user-report")
