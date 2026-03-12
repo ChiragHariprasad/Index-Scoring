@@ -182,104 +182,111 @@ Last Activity: {stats['last_activity']}
 """
         return (text.encode('utf-8'), "text/plain", f"{username}-activity-report.txt")
 
-def send_email_with_attachment(to_email: str, subject: str, body_text: str, attachment_bytes: bytes, attachment_filename: str, attachment_mimetype: str) -> tuple[bool, str | None]:
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT") or "587")
-    user = os.getenv("SMTP_USER")
+def _save_to_outbox(msg: EmailMessage) -> str:
+    """Save an EmailMessage to the outbox folder and return the file path."""
+    outdir = os.path.join(os.path.dirname(__file__), "outbox")
+    os.makedirs(outdir, exist_ok=True)
+    fname = f"{int(time.time())}-{uuid.uuid4()}.eml"
+    path = os.path.join(outdir, fname)
+    with open(path, "wb") as f:
+        f.write(msg.as_bytes())
+    return path
+
+
+def _smtp_send(msg: EmailMessage) -> tuple[bool, str | None]:
+    """
+    Attempt to deliver msg via the configured SMTP server.
+    Returns (True, None) on success or (False, error_string) on failure.
+    Does NOT save to outbox – that is always handled by the caller.
+    """
+    host     = os.getenv("SMTP_HOST")
+    port     = int(os.getenv("SMTP_PORT") or "587")
+    user     = os.getenv("SMTP_USER")
     password = os.getenv("SMTP_PASS")
-    from_addr = os.getenv("SMTP_FROM") or user or "noreply@example.com"
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = from_addr
-    msg["To"] = to_email
-    msg.set_content(body_text)
-    maintype, subtype = (attachment_mimetype.split("/", 1) + ["octet-stream"])[:2]
-    msg.add_attachment(attachment_bytes, maintype=maintype, subtype=subtype, filename=attachment_filename)
-
-    # If SMTP_HOST is not configured, either attempt local debug SMTP (only if enabled) or save to outbox
     if not host:
         debug_enabled = os.getenv("SMTP_DEBUG", "").lower() in ("1", "true", "yes")
-        debug_host = os.getenv("SMTP_DEBUG_HOST", "localhost")
-        debug_port = int(os.getenv("SMTP_DEBUG_PORT", "1025"))
-
         if debug_enabled:
-            print(f"SMTP_HOST not configured: SMTP_DEBUG enabled, attempting local SMTP at {debug_host}:{debug_port}")
+            debug_host = os.getenv("SMTP_DEBUG_HOST", "localhost")
+            debug_port = int(os.getenv("SMTP_DEBUG_PORT", "1025"))
             try:
                 with smtplib.SMTP(debug_host, debug_port, timeout=5) as s:
-                    try:
-                        s.send_message(msg)
-                        print(f"Sent email via local SMTP at {debug_host}:{debug_port}")
-                        return (True, None)
-                    except Exception:
-                        print("Local SMTP send failed (check local SMTP server). Falling back to outbox.")
-            except Exception:
-                print("Local SMTP connection failed (no local SMTP server). Falling back to outbox.")
-        else:
-            print("SMTP_HOST not configured: saving message to outbox. To test sending to a local SMTP server set SMTP_DEBUG=1 and run a debug SMTP server (e.g., 'python -m smtpd -n -c DebuggingServer localhost:1025' or use smtp4dev).")
+                    s.send_message(msg)
+                    return (True, None)
+            except Exception as e:
+                return (False, f"debug-smtp-failed: {e}")
+        return (False, "no-smtp-config")
 
-        # Save to outbox for later inspection
-        try:
-            outdir = os.path.join(os.path.dirname(__file__), "outbox")
-            os.makedirs(outdir, exist_ok=True)
-            fname_base = f"{int(time.time())}-{uuid.uuid4()}"
-            eml_path = os.path.join(outdir, f"{fname_base}.eml")
-            with open(eml_path, "wb") as f:
-                f.write(msg.as_bytes())
-            print(f"SMTP not configured: saved message to outbox: {eml_path}")
-            return (True, f"saved-to-outbox:{eml_path}")
-        except Exception as e:
-            print(f"Failed to save email to outbox: {e}")
-            return (False, f"outbox-save-failed: {e}")
-        except Exception as e:
-            print(f"Failed to save email to outbox: {e}")
-            return (False, f"outbox-save-failed: {e}")
-
-    # Normal path: send via configured SMTP server
-    use_ssl = os.getenv("SMTP_USE_SSL", "").lower() in ("1", "true", "yes") or int(os.getenv("SMTP_PORT") or port) == 465
+    use_ssl = os.getenv("SMTP_USE_SSL", "").lower() in ("1", "true", "yes") or port == 465
     try:
         if use_ssl:
-            # Connect with implicit SSL (port 465)
             with smtplib.SMTP_SSL(host, port, timeout=20) as s:
                 if user and password:
                     try:
                         s.login(user, password)
                     except smtplib.SMTPAuthenticationError as e:
-                        print(f"SMTP auth failed: {e}")
-                        return (False, f"SMTP auth failed: {e} (check credentials/app-passwords and Zoho SMTP settings)")
+                        return (False, f"SMTP auth failed: {e}")
                     except Exception as e:
-                        print(f"SMTP login failed: {e}")
                         return (False, f"SMTP login failed: {e}")
-                try:
-                    s.send_message(msg)
-                except Exception as e:
-                    print(f"SMTP send_message failed: {e}")
-                    return (False, f"SMTP send failed: {e}")
+                s.send_message(msg)
         else:
             with smtplib.SMTP(host, port, timeout=20) as s:
                 try:
                     s.starttls()
                 except Exception as e:
-                    # Not fatal but log warning
                     print(f"Warning: starttls failed: {e}")
                 if user and password:
                     try:
                         s.login(user, password)
                     except smtplib.SMTPAuthenticationError as e:
-                        print(f"SMTP auth failed: {e}")
-                        return (False, f"SMTP auth failed: {e} (check credentials/app-passwords and Zoho SMTP settings)")
+                        return (False, f"SMTP auth failed: {e}")
                     except Exception as e:
-                        print(f"SMTP login failed: {e}")
                         return (False, f"SMTP login failed: {e}")
-                try:
-                    s.send_message(msg) 
-                except Exception as e:
-                    print(f"SMTP send_message failed: {e}")
-                    return (False, f"SMTP send failed: {e}")
+                s.send_message(msg)
         return (True, None)
     except Exception as e:
-        print(f"SMTP connection/send error: {e}")
         return (False, str(e))
+
+
+def send_email_with_attachment(to_email: str, subject: str, body_text: str, attachment_bytes: bytes, attachment_filename: str, attachment_mimetype: str) -> tuple[bool, str | None]:
+    """Send an email with an attachment.
+    Always saves a copy to outbox/ first, then attempts SMTP delivery.
+    Returns (True, None) on successful SMTP send,
+            (True, "saved-to-outbox:<path>") when saved but not yet sent,
+            (False, error) on outbox save failure.
+    """
+    from_addr = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "noreply@example.com"
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"]    = from_addr
+    msg["To"]      = to_email
+    msg.set_content(body_text)
+    maintype, subtype = (attachment_mimetype.split("/", 1) + ["octet-stream"])[:2]
+    msg.add_attachment(attachment_bytes, maintype=maintype, subtype=subtype, filename=attachment_filename)
+
+    # Always persist to outbox first
+    try:
+        eml_path = _save_to_outbox(msg)
+        print(f"Email saved to outbox: {eml_path} → to={to_email} subject={subject!r}")
+    except Exception as e:
+        print(f"Failed to save email to outbox: {e}")
+        return (False, f"outbox-save-failed: {e}")
+
+    # Then attempt live SMTP delivery
+    ok, err = _smtp_send(msg)
+    if ok:
+        # Sent – remove the outbox copy so the retry loop doesn't re-send it
+        try:
+            os.remove(eml_path)
+        except Exception:
+            pass
+        print(f"Email sent via SMTP → {to_email}")
+        return (True, None)
+    else:
+        # SMTP failed / not configured – leave outbox copy for retry
+        print(f"SMTP not available ({err}); email queued in outbox: {eml_path}")
+        return (True, f"saved-to-outbox:{eml_path}")
 
 # -------------------------------------------------
 # IN-MEMORY STATE (session-based)
@@ -1091,11 +1098,204 @@ def outbox_retry_loop():
             time.sleep(interval)
 
 
+
+# =============================================================================
+# DAILY EMAIL SCHEDULER
+# =============================================================================
+# Runs in a daemon thread.  Two jobs per day (times in IST = UTC+5:30):
+#   09:00 IST  → aggregate summary  (who sent how many requests yesterday)
+#               sent to all DIGEST_REPORT_EMAILS
+#   21:00 IST  → per-user consolidated CSV  (each user gets their own rows)
+#               sent to each user individually
+# =============================================================================
+
+_IST_OFFSET = 5 * 3600 + 30 * 60  # seconds east of UTC
+
+DIGEST_REPORT_EMAILS = [
+    "chirag.h@iiflsamasta.com",
+    "sathish.palanisamy@iiflsamasta.com",
+    "nalinik@iiflsamasta.com",
+    "jeyasri.m@iiflsamasta.com",
+]
+
+DIGEST_USER_EMAIL_MAP: dict = {
+    "chirag":        "chirag.h@iiflsamasta.com",
+    "sathish":       "sathish.palanisamy@iiflsamasta.com",
+    "nalini":        "nalinik@iiflsamasta.com",
+    "jeyasri":       "jeyasri.m@iiflsamasta.com",
+    "jagadesh":      "jagadeesha@iiflsamasta.com",
+    "shraddha":      "shraddha@iiflsamasta.com",
+    "lakshmipathi":  "lakshmipathi.v@iiflsamasta.com",
+    "christuraja":   "christuraja.a@iiflsamasta.com",
+    "ranjith":       "ranjith.devadiga@iiflsamasta.com",
+    "sanandaganesh": "sanandaganesh.g@iiflsamasta.com",
+    "gourav":        "gourav.hulbatte@iiflsamasta.com",
+    "madanmv":       "mv.madan@iiflsamasta.com",
+    "deepakumar":    "p.deepakumar@iiflsamasta.com",
+    "beno":          "benothomas.bobby@iiflsamasta.com",
+    "george":        "george.prasad@iiflsamasta.com",
+    "manoj":         "manoj.malipatil@iiflsamasta.com",
+}
+
+
+def _ist_hhmm() -> int:
+    """Return current IST time as HHMM integer, e.g. 900 or 2100."""
+    t = time.gmtime(time.time() + _IST_OFFSET)
+    return t.tm_hour * 100 + t.tm_min
+
+
+def _ist_date(offset_days: int = 0) -> str:
+    """Return YYYY-MM-DD in IST. offset_days=-1 gives yesterday."""
+    ts = time.time() + _IST_OFFSET + offset_days * 86400
+    return time.strftime("%Y-%m-%d", time.gmtime(ts))
+
+
+def _ist_day_unix_range(date_str: str) -> tuple:
+    """Return (start_utc, end_utc) unix timestamps for a full IST calendar day."""
+    t = time.strptime(date_str, "%Y-%m-%d")
+    start_utc = int(time.mktime(t)) - _IST_OFFSET
+    return start_utc, start_utc + 86400
+
+
+def _digest_morning(target_date: str) -> None:
+    """Send aggregate request counts for target_date to all DIGEST_REPORT_EMAILS."""
+    print(f"[scheduler] Running 09:00 aggregate for {target_date}")
+    start_u, end_u = _ist_day_unix_range(target_date)
+    try:
+        cur.execute(
+            "SELECT username, COUNT(*) FROM events "
+            "WHERE event_type='upload' AND ts>=? AND ts<? "
+            "GROUP BY username ORDER BY COUNT(*) DESC",
+            (start_u, end_u),
+        )
+        rows = cur.fetchall()
+    except Exception as e:
+        print(f"[scheduler] DB error in morning aggregate: {e}")
+        return
+
+    total = sum(r[1] for r in rows)
+    lines = [f"  {u:<22} {c:>5} request(s)" for u, c in rows] or ["  No requests submitted."]
+    body = (
+        f"Index-Scoring – Daily Request Summary\n"
+        f"Date: {target_date} (IST)\n"
+        f"{'─'*45}\n\n"
+        f"User                       Requests\n"
+        f"{'─'*45}\n"
+        + "\n".join(lines)
+        + f"\n{'─'*45}\n"
+        f"Total: {total} request(s)\n\n"
+        f"Automated digest sent at 09:00 IST.\n"
+    )
+    subject = f"[Index-Scoring] Daily Request Summary – {target_date}"
+    for email in DIGEST_REPORT_EMAILS:
+        ok, err = send_plain_email(email, subject, body)
+        if not ok:
+            print(f"[scheduler] morning digest failed for {email}: {err}")
+
+
+def _build_digest_csv(username: str, target_date: str) -> bytes | None:
+    """Build CSV bytes for all of username's scored sessions on target_date."""
+    start_u, end_u = _ist_day_unix_range(target_date)
+    try:
+        cur.execute(
+            """
+            SELECT e.session_id, e.ts, e.username,
+                   COALESCE(u.input_tokens,0),
+                   COALESCE(u.output_tokens,0),
+                   COALESCE(u.total_tokens,0)
+            FROM events e
+            LEFT JOIN api_usage u
+                ON u.session_id=e.session_id AND u.username=e.username
+            WHERE e.event_type='report_generated'
+              AND e.username=? AND e.ts>=? AND e.ts<?
+            ORDER BY e.ts
+            """,
+            (username, start_u, end_u),
+        )
+        rows = cur.fetchall()
+    except Exception as e:
+        print(f"[scheduler] DB error building CSV for {username}: {e}")
+        return None
+
+    if not rows:
+        return None
+
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["session_id", "timestamp_ist", "username",
+                     "input_tokens", "output_tokens", "total_tokens"])
+    for sid, ts, uname, inp, outp, tot in rows:
+        ts_ist = time.strftime("%Y-%m-%d %H:%M:%S",
+                               time.gmtime(int(ts) + _IST_OFFSET))
+        writer.writerow([sid, ts_ist, uname, inp, outp, tot])
+    return out.getvalue().encode("utf-8")
+
+
+def _digest_evening(target_date: str) -> None:
+    """Send each user their own consolidated CSV for target_date."""
+    print(f"[scheduler] Running 21:00 CSV digest for {target_date}")
+    for username, email in DIGEST_USER_EMAIL_MAP.items():
+        csv_bytes = _build_digest_csv(username, target_date)
+        if csv_bytes is None:
+            print(f"[scheduler] No rows for {username} on {target_date} – skipping")
+            continue
+        filename = f"{username}-scores-{target_date}.csv"
+        subject  = f"[Index-Scoring] Your Scores – {target_date}"
+        body = (
+            f"Hi {username.capitalize()},\n\n"
+            f"Your consolidated scoring report for {target_date} is attached.\n"
+            f"It contains all entries processed under your account today.\n\n"
+            f"Automated digest sent at 21:00 IST.\n"
+        )
+        ok, err = send_email_with_attachment(
+            email, subject, body,
+            csv_bytes, filename, "text/csv"
+        )
+        if not ok:
+            print(f"[scheduler] evening CSV failed for {email}: {err}")
+
+
+def _scheduler_loop() -> None:
+    last_morning = ""
+    last_evening = ""
+    print("[scheduler] Started – waiting for 09:00 / 21:00 IST …")
+    while True:
+        try:
+            hhmm  = _ist_hhmm()
+            today = _ist_date(0)
+
+            if hhmm == 900 and last_morning != today:
+                last_morning = today
+                try:
+                    _digest_morning(_ist_date(-1))
+                except Exception as e:
+                    print(f"[scheduler] morning job error: {e}")
+
+            if hhmm == 2100 and last_evening != today:
+                last_evening = today
+                try:
+                    _digest_evening(today)
+                except Exception as e:
+                    print(f"[scheduler] evening job error: {e}")
+
+        except Exception as e:
+            print(f"[scheduler] loop error: {e}")
+
+        time.sleep(20)
+
+
+def _start_scheduler() -> None:
+    t = threading.Thread(target=_scheduler_loop, daemon=True)
+    t.start()
+    print("[scheduler] Background scheduler started (09:00 IST aggregate | 21:00 IST CSV)")
+
 @app.on_event("startup")
 def start_outbox_retry_worker():
     if os.getenv("SMTP_OUTBOX_AUTO_RETRY", "1").lower() in ("1", "true", "yes"):
         t = threading.Thread(target=outbox_retry_loop, daemon=True)
         t.start()
+    # Start the daily digest scheduler (09:00 IST aggregate + 21:00 IST per-user CSV)
+    _start_scheduler()
 
 
 @app.post('/admin/outbox/retry')
@@ -1563,89 +1763,39 @@ def verify_password(password: str, stored_hash: str) -> bool:
         return False
 
 
-# Simple plaintext email sender that uses the same fallback logic as attachments
+# Simple plaintext email sender – always saves to outbox, then attempts SMTP
 def send_plain_email(to_email: str, subject: str, body_text: str) -> tuple[bool, str | None]:
-    # Reuse logic from send_email_with_attachment but without attachment
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT") or "587")
-    user = os.getenv("SMTP_USER")
-    password = os.getenv("SMTP_PASS")
-    from_addr = os.getenv("SMTP_FROM") or user or "noreply@example.com"
+    """Send a plain-text email.
+    Always saves a copy to outbox/ first, then attempts SMTP delivery.
+    """
+    from_addr = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "noreply@example.com"
 
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = from_addr
-    msg["To"] = to_email
+    msg["From"]    = from_addr
+    msg["To"]      = to_email
     msg.set_content(body_text)
 
-    if not host:
-        # Respect SMTP_DEBUG flag before attempting local SMTP; otherwise save directly to outbox
-        debug_enabled = os.getenv("SMTP_DEBUG", "").lower() in ("1", "true", "yes")
-        debug_host = os.getenv("SMTP_DEBUG_HOST", "localhost")
-        debug_port = int(os.getenv("SMTP_DEBUG_PORT", "1025"))
-        if debug_enabled:
-            try:
-                with smtplib.SMTP(debug_host, debug_port, timeout=5) as s:
-                    s.send_message(msg)
-                    return (True, None)
-            except Exception:
-                # Save to outbox if local SMTP failed
-                try:
-                    outdir = os.path.join(os.path.dirname(__file__), "outbox")
-                    os.makedirs(outdir, exist_ok=True)
-                    fname_base = f"{int(time.time())}-{uuid.uuid4()}"
-                    eml_path = os.path.join(outdir, f"{fname_base}.eml")
-                    with open(eml_path, "wb") as f:
-                        f.write(msg.as_bytes())
-                    print("Local SMTP connection failed: saved message to outbox")
-                    return (True, f"saved-to-outbox:{eml_path}")
-                except Exception as se:
-                    return (False, f"outbox-save-failed: {se}")
-        else:
-            # Directly save to outbox without attempting a local connection
-            try:
-                outdir = os.path.join(os.path.dirname(__file__), "outbox")
-                os.makedirs(outdir, exist_ok=True)
-                fname_base = f"{int(time.time())}-{uuid.uuid4()}"
-                eml_path = os.path.join(outdir, f"{fname_base}.eml")
-                with open(eml_path, "wb") as f:
-                    f.write(msg.as_bytes())
-                print("SMTP not configured: saved message to outbox. To test sending to localhost, set SMTP_DEBUG=1 and run a debug SMTP server on localhost:1025.")
-                return (True, f"saved-to-outbox:{eml_path}")
-            except Exception as se:
-                return (False, f"outbox-save-failed: {se}")
-
-    use_ssl = os.getenv("SMTP_USE_SSL", "").lower() in ("1", "true", "yes") or int(os.getenv("SMTP_PORT") or port) == 465
+    # Always persist to outbox first
     try:
-        if use_ssl:
-            with smtplib.SMTP_SSL(host, port, timeout=20) as s:
-                if user and password:
-                    try:
-                        s.login(user, password)
-                    except smtplib.SMTPAuthenticationError as e:
-                        return (False, f"SMTP auth failed: {e} (check credentials/app-passwords and Zoho SMTP settings)")
-                try:
-                    s.send_message(msg)
-                except Exception as e:
-                    return (False, f"SMTP send failed: {e}")
-        else:
-            with smtplib.SMTP(host, port, timeout=20) as s:
-                try:
-                    s.starttls()
-                except Exception:
-                    pass
-                if user and password:
-                    try:
-                        s.login(user, password)
-                    except smtplib.SMTPAuthenticationError as e:
-                        return (False, f"SMTP auth failed: {e} (check credentials/app-passwords and Zoho SMTP settings)")
-                try:
-                    s.send_message(msg)
-                except Exception as e:
-                    return (False, f"SMTP send failed: {e}")
-        return (True, None)
+        eml_path = _save_to_outbox(msg)
+        print(f"Email saved to outbox: {eml_path} → to={to_email} subject={subject!r}")
     except Exception as e:
-        return (False, str(e))
+        print(f"Failed to save email to outbox: {e}")
+        return (False, f"outbox-save-failed: {e}")
+
+    # Attempt live SMTP delivery
+    ok, err = _smtp_send(msg)
+    if ok:
+        try:
+            os.remove(eml_path)
+        except Exception:
+            pass
+        print(f"Email sent via SMTP → {to_email}")
+        return (True, None)
+    else:
+        print(f"SMTP not available ({err}); email queued in outbox: {eml_path}")
+        return (True, f"saved-to-outbox:{eml_path}")
 
 
 init_users_db()

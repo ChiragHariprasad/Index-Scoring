@@ -468,8 +468,7 @@ def analyze_with_gemini(image_paths: List[str], api_key: str) -> Dict[str, Any]:
     print("STEP 1: LOADING IMAGES")
     print("="*80)
     
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    client = genai.Client(api_key=api_key)
     
     images = []
     for i, img_path in enumerate(image_paths, 1):
@@ -486,7 +485,9 @@ def analyze_with_gemini(image_paths: List[str], api_key: str) -> Dict[str, Any]:
     print("  Processing...")
     
     content = [SYSTEM_PROMPT] + images
-    response = model.generate_content(content)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash", contents=content
+    )
     
     print("\n✓ Response received from Gemini")
     
@@ -807,4 +808,3 @@ def run_full_pipeline(image_paths: List[str]) -> Dict[str, Any]:
         "scoring": scoring_result,
         "usage": usage
     }
-
